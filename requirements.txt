@@ -1,0 +1,24 @@
+# NDVI Fire-Susceptibility Feature Pipeline (Step 2) — dependencies
+# Install with: pip install -r requirements.txt
+
+geopandas
+rasterio
+shapely
+numpy
+pandas
+matplotlib
+tqdm
+scipy
+scikit-learn
+libpysal
+esda
+jupyter
+nbconvert
+
+# ── Optional: GPU acceleration (NVIDIA CUDA 12.x on Windows/Linux) ──────────
+# The pipeline auto-detects CuPy and falls back to NumPy (CPU) if these are
+# not installed or no compatible GPU is present. Uncomment to enable GPU:
+# cupy-cuda12x
+# nvidia-cuda-runtime-cu12
+# nvidia-cuda-nvrtc-cu12
+# nvidia-cuda-nvcc-cu12
