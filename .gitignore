@@ -1,0 +1,31 @@
+# Raw MOD13A3 NDVI GeoTIFF archive (~4.5 GB) -- re-download from NASA AppEEARS
+# instead of versioning; see the "Data support files@NDVI/" request files for
+# the exact request parameters used.
+NDVI TIF File_INDIA/
+
+# Redundant intermediate .npy caches -- duplicate the information already
+# exported as the F1-F9 GeoTIFFs below; not useful to anyone cloning the repo.
+NDVI_Fire_Susceptibility_Outputs/*.npy
+
+# Superseded by F7_CVSI_k8.tif (k*=8 is the corrected optimal lag, 2026-08-10;
+# k6 was an unverified boundary artifact of a sweep that stopped too early).
+NDVI_Fire_Susceptibility_Outputs/F7_CVSI_k6.tif
+
+# LaTeX build byproducts -- regenerate by compiling the .tex source, not
+# meaningful to version.
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# Local tool/session state -- not part of the analysis
+.claude/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

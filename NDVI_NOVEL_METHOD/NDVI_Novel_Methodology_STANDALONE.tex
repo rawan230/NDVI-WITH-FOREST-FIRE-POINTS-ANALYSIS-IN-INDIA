@@ -1,0 +1,731 @@
+% =============================================================
+% STANDALONE COMPILABLE LaTeX DOCUMENT
+% NDVI Novel Methodology — Forest Fire Susceptibility Mapping
+% IIT Roorkee | Dept. Applied Mathematics & Scientific Computing
+% Supervisor: Prof. Millie Pant
+%
+% HOW TO COMPILE IN TeXstudio:
+%   1. Set Bibliography: Options → Configure TeXstudio →
+%      Build → Default Bibliography Tool → BibTeX
+%   2. Press F5 (Build & View) OR run in order:
+%      pdflatex → bibtex → pdflatex → pdflatex
+%
+% COMPILER: pdflatex (NOT XeLaTeX or LuaLaTeX)
+% =============================================================
+
+\documentclass[12pt, a4paper]{article}
+
+% ── Essential Packages ──────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left   = 2.5cm,
+    right  = 2.5cm,
+    top    = 2.5cm,
+    bottom = 2.5cm
+}
+
+% ── Mathematics ─────────────────────────────────────────────
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+% ── Graphics & Tables ───────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{longtable}
+
+% ── Algorithms ──────────────────────────────────────────────
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ── References (natbib — required for \citet, \citep) ───────
+\usepackage[round, authoryear, sort]{natbib}
+
+% ── Colours & Hyperlinks ────────────────────────────────────
+\usepackage{xcolor}
+\usepackage[
+    colorlinks = true,
+    linkcolor  = blue,
+    citecolor  = teal,
+    urlcolor   = blue
+]{hyperref}
+
+% ── Miscellaneous ───────────────────────────────────────────
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\usepackage{enumitem}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf}
+\usepackage{float}
+
+% ── Custom Colours ──────────────────────────────────────────
+\definecolor{novelblue}{RGB}{0, 82, 147}
+\definecolor{novelbg}{RGB}{240, 248, 255}
+
+% ── Custom Environments ─────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\newtcolorbox{novelbox}[1]{
+    colback   = novelbg,
+    colframe  = novelblue,
+    fonttitle = \bfseries,
+    title     = {#1},
+    breakable = true
+}
+
+% ── Header & Footer ─────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small NDVI Methodology | IIT Roorkee}
+\lhead{\small Forest Fire Susceptibility Mapping — India}
+\cfoot{\thepage}
+
+% =============================================================
+\begin{document}
+% =============================================================
+
+% ── Title Page ──────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\LARGE \bfseries Novel NDVI-Based Vegetation Stress Analysis\\[0.5em]
+for Forest Fire Susceptibility Mapping in India}
+
+\vspace{1.5cm}
+
+{\large \textit{Methodology Section — Research Working Document}}
+
+\vspace{1cm}
+
+\rule{0.8\linewidth}{0.4pt}
+
+\vspace{1cm}
+
+{\large \textbf{[Your Name]}}\\[0.3em]
+{\normalsize Senior Research Fellow (SRF)}\\[0.2em]
+{\normalsize Department of Applied Mathematics \& Scientific Computing}\\[0.2em]
+{\normalsize Indian Institute of Technology Roorkee}
+
+\vspace{0.5cm}
+
+{\normalsize Under the supervision of \textbf{Prof. Millie Pant}}
+
+\vspace{1cm}
+
+\rule{0.8\linewidth}{0.4pt}
+
+\vspace{0.8cm}
+
+{\normalsize \textbf{Data:} MOD13C2 / MOD13A3 v061, NASA LP DAAC, 2000--2022}\\[0.3em]
+{\normalsize \textbf{Extends:} \citealt{biswas2025} —
+             \textit{Environ.\ Sci.\ Pollut.\ Res.}, 32:4856--4878}\\[0.3em]
+{\normalsize \textbf{Funding:} Ministry of Education, Government of India}
+
+\vspace{1.5cm}
+
+{\normalsize \today}
+
+\end{titlepage}
+
+% ── Table of Contents ───────────────────────────────────────
+\tableofcontents
+\newpage
+
+% =============================================================
+\section{NDVI-Based Vegetation Stress Analysis for Forest Fire
+         Susceptibility}
+\label{sec:ndvi_methodology}
+% =============================================================
+
+\subsection{Overview and Motivation}
+\label{sec:overview}
+
+The Normalized Difference Vegetation Index (NDVI) is defined as:
+
+\begin{equation}
+    \text{NDVI} = \frac{\rho_{\text{NIR}} - \rho_{\text{Red}}}
+                       {\rho_{\text{NIR}} + \rho_{\text{Red}}}
+    \label{eq:ndvi_definition}
+\end{equation}
+
+where $\rho_{\text{NIR}}$ and $\rho_{\text{Red}}$ denote the surface
+reflectance in the Near-Infrared and Red spectral bands respectively.
+The index ranges from $-0.2$ to $1.0$, with higher values indicating
+denser and healthier vegetation.
+
+NDVI emerged as the \textbf{single most important predictor} of forest
+fire occurrence in India among 15 environmental variables, contributing
+$22.3\%$ permutation importance and $28.4\%$ percentage contribution
+in the MaxEnt framework of \citet{biswas2025}. Despite this primacy,
+prior studies — including \citet{biswas2025} — employed NDVI solely as a
+static or temporally-averaged predictor, foregoing the rich temporal
+information encoded in the 22-year MODIS satellite record (2000--2022).
+
+\begin{novelbox}{Methodological Gap Addressed in This Study}
+\citet{biswas2025} applied NDVI as:
+\begin{itemize}[leftmargin=1.5em]
+    \item A single time-averaged raster layer
+    \item Without pixel-level quality filtering (cloud/snow contamination retained)
+    \item Without temporal decomposition (seasonal cycle confounds prediction)
+    \item Without pre-fire stress signal extraction
+    \item Assuming a linear NDVI--fire relationship
+\end{itemize}
+This study introduces five mathematically grounded extensions that
+transform raw NDVI into physically interpretable, temporally dynamic,
+and spatially aware predictors of fire susceptibility.
+\end{novelbox}
+
+The five novel components introduced in this study are:
+
+\begin{enumerate}
+    \item \textbf{QA-filtered scale-corrected NDVI} (Section~\ref{sec:ndvi_data})
+    \item \textbf{Seasonal decomposition and anomaly extraction}
+          (Section~\ref{sec:ndvi_decomp})
+    \item \textbf{Pre-fire Cumulative Vegetation Stress Index (CVSI)}
+          (Section~\ref{sec:cvsi})
+    \item \textbf{Spatial autocorrelation and fire-cluster alignment}
+          via Moran's~$I$ (Section~\ref{sec:morans_i})
+    \item \textbf{NDVI--fire threshold detection via breakpoint analysis}
+          (Section~\ref{sec:threshold})
+\end{enumerate}
+
+% =============================================================
+\subsection{Data Source and Preprocessing}
+\label{sec:ndvi_data}
+% =============================================================
+
+NDVI data were obtained from the MODIS/Terra Vegetation Indices Monthly
+product \textbf{MOD13C2 Version~6.1} \citep{didan2021}, hosted at the
+NASA Land Processes Distributed Active Archive Center (LP~DAAC) and
+accessed via the AppEEARS extraction service \citep{appeears2023}.
+The product provides monthly composite NDVI at $0.05^{\circ}$
+(${\approx}5.6$~km) spatial resolution in the Climate Modeling Grid
+(CMG) projection. A higher-resolution variant (MOD13A3 v061, 1~km
+monthly) was also evaluated and yields improved spatial detail over the
+$0.05^{\circ}$ product used in \citet{biswas2025}. The study period
+spans February 2000 through August 2022 ($T = 272$ monthly composite
+images).
+
+% ── 2.1 ─────────────────────────────────────────────────────
+\subsubsection{Scale Correction and Fill-Value Masking}
+\label{sec:scale}
+
+Raw MOD13C2 stores NDVI as signed 16-bit integers. The corrected
+floating-point NDVI for pixel $(i,j)$ at time step $t$ is:
+
+\begin{equation}
+    \text{NDVI}_{ij}^{(t)} =
+    \begin{cases}
+        \text{raw}_{ij}^{(t)} \times 10^{-4} &
+            \text{if } -2000 \leq \text{raw}_{ij}^{(t)} \leq 10000 \\[4pt]
+        \text{NaN} & \text{otherwise}
+    \end{cases}
+    \label{eq:ndvi_scale}
+\end{equation}
+
+yielding true NDVI $\in [-0.2,\, 1.0]$. The designated fill value of
+$-3000$ and all values outside the valid range are replaced with
+\texttt{NaN} prior to any analysis.
+
+% ── 2.2 ─────────────────────────────────────────────────────
+\subsubsection{Quality Assurance Filtering}
+\label{sec:qa_filter}
+
+\begin{novelbox}{Novel Contribution~1: Pixel-Level QA Filtering}
+\citet{biswas2025} applied no pixel-level quality screening to NDVI,
+implicitly including cloud-contaminated and snow/ice-affected retrievals.
+This work applies the \texttt{pixel\_reliability} Science Data Set (SDS)
+from MOD13C2 to filter each pixel before analysis.
+\end{novelbox}
+
+The QA-filtered NDVI is defined as:
+
+\begin{equation}
+    \text{NDVI}_{ij}^{(t),\,\text{QA}} =
+    \begin{cases}
+        \text{NDVI}_{ij}^{(t)} & \text{if } q_{ij}^{(t)} \in \{0,\, 1\} \\[4pt]
+        \text{NaN}             & \text{otherwise}
+    \end{cases}
+    \label{eq:qa_filter}
+\end{equation}
+
+where pixel reliability values are defined as:
+$q = 0$ (Good data, use without further screening),
+$q = 1$ (Marginal data, useful but inspect detailed QA),
+$q = 2$ (Snow/Ice — exclude),
+$q = 3$ (Cloudy — exclude), and
+$q = -1$ (Fill/No data) \citep{didan2021_ug}.
+QA filtering is especially critical for monsoon months (June--September),
+when cloud contamination over India is highest and unfiltered NDVI values
+are systematically negatively biased.
+
+% =============================================================
+\subsection{Seasonal Decomposition and Anomaly Extraction}
+\label{sec:ndvi_decomp}
+% =============================================================
+
+\subsubsection{Climatological Mean and Monthly Anomaly}
+\label{sec:anomaly}
+
+India's vegetation phenology is dominated by a strong annual monsoon
+cycle. To isolate the inter-annual fire-relevant signal from the
+seasonal background, the long-term climatological mean for calendar
+month $m$ at pixel $(i,j)$ is computed over the 2001--2020 baseline
+(consistent with \citealt{biswas2025}):
+
+\begin{equation}
+    \bar{\mu}_{ij}^{(m)} =
+    \frac{1}{\lvert\mathcal{Y}_m\rvert}
+    \sum_{y \in \mathcal{Y}_m}
+    \text{NDVI}_{ij}^{(y,m),\,\text{QA}}
+    \label{eq:clim_mean}
+\end{equation}
+
+where $\mathcal{Y}_m = \{2001, 2002, \ldots, 2020\}$ and only
+non-\texttt{NaN} values contribute. The \textbf{monthly NDVI anomaly}
+at year $y$, month $m$, pixel $(i,j)$ is:
+
+\begin{equation}
+    \boxed{
+    \delta_{ij}^{(y,m)} =
+    \text{NDVI}_{ij}^{(y,m),\,\text{QA}} - \bar{\mu}_{ij}^{(m)}
+    }
+    \label{eq:ndvi_anomaly}
+\end{equation}
+
+Negative anomaly ($\delta < 0$) indicates below-average vegetation
+density (stress); positive ($\delta > 0$) indicates above-average
+greenness. This operation removes the confounding seasonal cycle and
+exposes the inter-annual vegetation stress signal directly relevant
+to fire ignition.
+
+\subsubsection{STL Decomposition for Trend Isolation}
+\label{sec:stl}
+
+\begin{novelbox}{Novel Contribution~2: STL Temporal Decomposition}
+Biswas et al.\ \citeyearpar{biswas2025} did not perform any temporal
+decomposition of NDVI. This study decomposes the 22-year pixel-wise
+time series using STL (Seasonal and Trend decomposition using LOESS),
+separating long-term vegetation trend from the seasonal and residual
+components.
+\end{novelbox}
+
+The STL decomposition \citep{cleveland1990stl} is applied to each
+spatial pixel's complete time series:
+
+\begin{equation}
+    \text{NDVI}_{ij}^{(t)} = T_{ij}^{(t)} + S_{ij}^{(t)} + R_{ij}^{(t)}
+    \label{eq:stl}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $T_{ij}^{(t)}$ — \textbf{Trend component}: captures inter-annual
+          vegetation change driven by deforestation, afforestation, and
+          land-use change. A declining trend ($\partial T / \partial t < 0$)
+          over a forest pixel indicates vegetation loss and elevated fire risk.
+    \item $S_{ij}^{(t)}$ — \textbf{Seasonal component}: the repeating
+          annual monsoon-driven phenology cycle (period $= 12$ months).
+    \item $R_{ij}^{(t)}$ — \textbf{Residual component}: captures anomalous
+          events including drought episodes, pest outbreaks, pre-fire fuel
+          drying, and post-fire regeneration.
+\end{itemize}
+
+The \textbf{Mann--Kendall trend test} \citep{mann1945, kendall1975} is
+applied pixel-wise to $T_{ij}^{(t)}$ to identify statistically significant
+greening or browning trends at the $\alpha = 0.05$ significance level.
+The Mann--Kendall statistic $\tau$ is:
+
+\begin{equation}
+    \tau = \frac{P - Q}{\frac{1}{2}n(n-1)}
+    \label{eq:mk_tau}
+\end{equation}
+
+where $P$ is the number of concordant pairs and $Q$ the number of
+discordant pairs in the time series. Pixels with $\tau < 0$ and
+$p < 0.05$ are classified as \textbf{significant browning} zones —
+regions of long-term vegetation decline contributing to elevated fire
+susceptibility.
+
+% =============================================================
+\subsection{Cumulative Vegetation Stress Index (CVSI)}
+\label{sec:cvsi}
+% =============================================================
+
+\begin{novelbox}{Novel Contribution~3: Pre-Fire Vegetation Stress Quantification}
+No prior India-scale forest fire susceptibility study has introduced a
+temporally-accumulating pre-fire NDVI stress metric. The CVSI defined
+below provides a direct proxy for fuel moisture deficit in the weeks
+to months preceding ignition, grounded in combustion physics.
+\end{novelbox}
+
+\subsubsection{Mathematical Formulation}
+
+Let $\tau_f$ denote the month of fire occurrence at pixel $(i,j)$.
+The $k$-month \textbf{Cumulative Vegetation Stress Index (CVSI)}
+leading up to $\tau_f$ is:
+
+\begin{equation}
+    \boxed{
+    \text{CVSI}_{ij}(\tau_f,\, k) =
+    \sum_{t = \tau_f - k}^{\tau_f - 1}
+    \max\!\left(-\delta_{ij}^{(t)},\; 0\right)
+    }
+    \label{eq:cvsi}
+\end{equation}
+
+The operator $\max(-\delta, 0)$ retains only negative anomaly episodes
+(stress) and discards above-average greenness months. For $k = 3$:
+
+\begin{align}
+    \text{CVSI}_{ij}(\tau_f,\, 3) \;=\;&
+    \max\!\left(-\delta_{ij}^{(\tau_f - 3)},\, 0\right) \nonumber \\
+    +\;& \max\!\left(-\delta_{ij}^{(\tau_f - 2)},\, 0\right) \nonumber \\
+    +\;& \max\!\left(-\delta_{ij}^{(\tau_f - 1)},\, 0\right)
+    \label{eq:cvsi3}
+\end{align}
+
+\textbf{Physical justification:} Prolonged below-average NDVI signals
+reduced canopy moisture content, accelerated fine fuel drying, and
+increased bulk density of dead surface fuels susceptible to ignition
+\citep{chuvieco2004}. The CVSI thus quantifies the \emph{pre-fire
+fuel moisture deficit}, a well-established physical precursor to
+wildfire ignition \citep{flannigan2000}.
+
+\subsubsection{Optimal Lag Selection via Mutual Information}
+\label{sec:mi_lag}
+
+The optimal accumulation window $k^{*}$ is selected by maximising the
+\textbf{mutual information} (MI) between $\text{CVSI}(\tau_f, k)$
+and binary fire occurrence labels $F_{ij} \in \{0, 1\}$:
+
+\begin{equation}
+    k^{*} = \underset{k \;\in\; \{1,2,3,4,5,6\}}{\arg\max}\;
+    I\!\left(\text{CVSI}(\tau_f, k)\;;\; F_{ij}\right)
+    \label{eq:mi_lag}
+\end{equation}
+
+where the Shannon mutual information is:
+
+\begin{equation}
+    I(X;\,Y) = \sum_{x,\,y} p(x,y)\,\log_2
+    \frac{p(x,y)}{p(x)\,p(y)}
+    \label{eq:mutual_info}
+\end{equation}
+
+\subsubsection{Comparison with Existing Fire Danger Indices}
+
+Table~\ref{tab:cvsi_comparison} compares the CVSI with commonly used
+fire danger indices.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of CVSI with existing vegetation-based fire indices}
+\label{tab:cvsi_comparison}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Index} & \textbf{Input} & \textbf{Temporal depth} &
+\textbf{Available for India?} \\
+\midrule
+Raw NDVI \citep{biswas2025}   & NDVI              & Single month      & Yes \\
+NDWI                           & NIR, SWIR         & Single month      & Yes \\
+FWI (Canadian)                 & Climate variables & Daily rolling     & Limited \\
+KBDI                           & Precipitation, T  & Monthly           & Limited \\
+\textbf{CVSI (this work)}      & \textbf{NDVI anomaly} &
+    \textbf{$k^*$ months pre-fire} & \textbf{Yes (national)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =============================================================
+\subsection{Spatial Autocorrelation: Global and Local Moran's $I$}
+\label{sec:morans_i}
+% =============================================================
+
+\begin{novelbox}{Novel Contribution~4: Spatial Neighbourhood of Vegetation}
+\citet{biswas2025} treated all spatial pixels as independent
+observations. This work explicitly models the spatial dependency
+structure of NDVI using Moran's~$I$, capturing the fire-relevant
+information embedded in a pixel's vegetation neighbourhood.
+\end{novelbox}
+
+\subsubsection{Global Moran's $I$}
+\label{sec:global_moran}
+
+For a spatial field $\{x_{ij}\}$ with $N$ pixels and row-standardised
+spatial weight matrix $\mathbf{W}$ (Queen contiguity):
+
+\begin{equation}
+    I = \frac{N}{\displaystyle\sum_{i,j}\sum_{k,l} w_{ij,kl}}
+    \cdot
+    \frac{\displaystyle\sum_{i,j}\sum_{k,l}
+          w_{ij,kl}
+          \left(x_{ij} - \bar{x}\right)
+          \left(x_{kl} - \bar{x}\right)}
+         {\displaystyle\sum_{i,j}\left(x_{ij} - \bar{x}\right)^{2}}
+    \label{eq:global_morans_i}
+\end{equation}
+
+Under spatial randomness, $\mathbb{E}[I] = -1/(N-1)$. Statistical
+significance is assessed via permutation testing ($n_{\text{perm}} = 999$)
+at $\alpha = 0.05$. $I > 0$ indicates spatial clustering; $I < 0$
+indicates dispersion.
+
+\subsubsection{Local Indicators of Spatial Association (LISA)}
+\label{sec:lisa}
+
+The Local Moran's $I$ statistic at pixel $(i,j)$ is:
+
+\begin{equation}
+    I_{ij} =
+    \frac{x_{ij} - \bar{x}}{S^{2}}
+    \sum_{k,l} w_{ij,kl}\left(x_{kl} - \bar{x}\right)
+    \label{eq:local_morans_i}
+\end{equation}
+
+where $S^{2} = \tfrac{1}{N}\sum_{i,j}(x_{ij} - \bar{x})^{2}$.
+LISA classification yields four spatial cluster types:
+
+\begin{table}[H]
+\centering
+\caption{LISA quadrant classification and fire-risk interpretation}
+\label{tab:lisa}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{LISA Class} & \textbf{Description} & \textbf{Fire Risk Implication} \\
+\midrule
+High--High (HH) & High NDVI, high-NDVI neighbourhood &
+    Dense contiguous forest; interior fire risk \\
+Low--Low (LL)   & Low NDVI, low-NDVI neighbourhood &
+    Degraded/sparse forest; low fuel load \\
+High--Low (HL)  & High NDVI, low-NDVI neighbourhood &
+    Forest fragment at WUI; elevated edge fire risk \\
+Low--High (LH)  & Low NDVI, high-NDVI neighbourhood &
+    Recent burn scar / clearcut within forest \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The LISA cluster class is incorporated as a \textbf{categorical feature}
+in the ML pipeline, encoding spatial neighbourhood context that
+pixel-level NDVI values alone cannot express.
+
+% =============================================================
+\subsection{NDVI--Fire Threshold Detection via Breakpoint Analysis}
+\label{sec:threshold}
+% =============================================================
+
+\begin{novelbox}{Novel Contribution~5: Non-linear NDVI--Fire Relationship}
+\citet{biswas2025} implicitly assumed a monotonic linear relationship
+between NDVI and fire probability within the MaxEnt framework. This
+study explicitly models the \textbf{non-linearity} of the NDVI--fire
+relationship by detecting the critical threshold $\theta^{*}$ below
+which fire occurrence probability increases sharply.
+\end{novelbox}
+
+\subsubsection{Piecewise Logistic Fire--NDVI Model}
+\label{sec:piecewise}
+
+Let $P(F = 1 \mid \text{NDVI} = x)$ denote the probability of fire
+occurrence given pixel NDVI value $x$. A piecewise logistic model with
+a single structural breakpoint $\theta$ is:
+
+\begin{equation}
+    P(F = 1 \mid x) =
+    \begin{cases}
+        \sigma\!\left(\alpha_{1} + \beta_{1}\,x\right) &
+            \text{if } x \leq \theta \\[6pt]
+        \sigma\!\left(\alpha_{2} + \beta_{2}\,x\right) &
+            \text{if } x > \theta
+    \end{cases}
+    \label{eq:piecewise_logistic}
+\end{equation}
+
+where $\sigma(z) = (1 + e^{-z})^{-1}$ is the logistic sigmoid.
+The parameter vector $\bm{\psi} = \{\alpha_1, \beta_1, \alpha_2,
+\beta_2, \theta\}$ is estimated by minimising the binary
+cross-entropy (negative log-likelihood):
+
+\begin{equation}
+    \hat{\bm{\psi}} =
+    \underset{\bm{\psi}}{\arg\min}\;
+    \mathcal{L}(\bm{\psi}) =
+    -\sum_{n=1}^{N}
+    \Bigl[
+        F_n \log P_n + (1 - F_n)\log(1 - P_n)
+    \Bigr]
+    \label{eq:nll}
+\end{equation}
+
+The breakpoint $\theta^{*}$ is found via grid search over the
+10th--90th percentile of observed NDVI followed by gradient-based
+fine-tuning (Nelder--Mead optimisation). The estimated $\theta^{*}$
+represents the \textbf{critical vegetation density threshold for fire
+ignition} in each biogeographic zone.
+
+\subsubsection{Biogeographic Zone-Stratified Thresholds}
+\label{sec:zone_thresh}
+
+India's forest types span five major biogeographic zones
+\citep{rodgers1988}: (1)~Northeastern tropical, (2)~Western Ghats
+tropical wet, (3)~Deccan dry deciduous, (4)~Central Indian mixed, and
+(5)~Himalayan sub-alpine. A single national $\theta^{*}$ is
+ecologically inadequate. Zone-stratified thresholds $\{\theta^{*}_{z}\}_{z=1}^{5}$
+are estimated independently and incorporated as zone-specific NDVI
+risk indicators in the final susceptibility mapping.
+
+% =============================================================
+\subsection{NDVI Feature Engineering Summary}
+\label{sec:ndvi_features}
+% =============================================================
+
+Table~\ref{tab:ndvi_features} summarises all NDVI-derived features
+entering the ML pipeline, expanding from the single raw NDVI layer
+of \citet{biswas2025} to a nine-feature NDVI representation.
+
+\begin{table}[H]
+\centering
+\caption{Complete NDVI-derived feature set for forest fire
+         susceptibility mapping}
+\label{tab:ndvi_features}
+\begin{tabular}{@{}clllc@{}}
+\toprule
+\textbf{ID} & \textbf{Feature} & \textbf{Equation} &
+\textbf{Physical Meaning} & \textbf{Novel?} \\
+\midrule
+F1 & QA-filtered NDVI $\overline{\text{NDVI}}_{\text{QA}}$
+   & Eq.~\eqref{eq:qa_filter}
+   & Mean vegetation density (cloud-screened)
+   & Partial \\
+F2 & Climatological mean $\bar{\mu}^{(m)}$
+   & Eq.~\eqref{eq:clim_mean}
+   & Long-term seasonal baseline
+   & No \\
+F3 & Monthly anomaly $\delta$
+   & Eq.~\eqref{eq:ndvi_anomaly}
+   & Inter-annual vegetation stress
+   & \textbf{Yes} \\
+F4 & STL trend $T$
+   & Eq.~\eqref{eq:stl}
+   & 22-year vegetation change trajectory
+   & \textbf{Yes} \\
+F5 & STL residual $R$
+   & Eq.~\eqref{eq:stl}
+   & Anomalous events (drought, fire scar)
+   & \textbf{Yes} \\
+F6 & Mann--Kendall $\tau$
+   & Eq.~\eqref{eq:mk_tau}
+   & Browning/greening trend significance
+   & \textbf{Yes} \\
+F7 & CVSI$(k^{*})$
+   & Eq.~\eqref{eq:cvsi}
+   & Pre-fire fuel moisture deficit
+   & \textbf{Yes} \\
+F8 & Local Moran's $I_{ij}$ / LISA
+   & Eq.~\eqref{eq:local_morans_i}
+   & Spatial neighbourhood vegetation cluster
+   & \textbf{Yes} \\
+F9 & $\mathbb{1}[\text{NDVI} < \theta^{*}_{z}]$
+   & Eq.~\eqref{eq:piecewise_logistic}
+   & Critical ignition threshold indicator
+   & \textbf{Yes} \\
+\midrule
+\multicolumn{4}{l}{\textit{Biswas et al.\ (2025): 1 NDVI feature}} &
+    --- \\
+\multicolumn{4}{l}{\textit{This work: 9 NDVI-derived features}} &
+    7 novel \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =============================================================
+\subsection{Integration with MaxEnt and ML Models}
+\label{sec:integration}
+% =============================================================
+
+The nine NDVI-derived features (Table~\ref{tab:ndvi_features}) are
+integrated into the prediction pipeline alongside the 14 other
+variables of \citet{biswas2025} (Table~2 therein), yielding a
+\textbf{23-dimensional feature space} compared to the 15-dimensional
+space of the baseline study. In the MaxEnt framework, each NDVI
+feature enters as a separate continuous environmental layer. In the
+supervised ML pipeline (Random Forest, XGBoost, SVM), SHAP
+(SHapley Additive exPlanations) analysis \citep{lundberg2017} is
+applied to decompose each feature's marginal contribution — providing
+model-agnostic attribution that extends beyond the permutation
+importance reported in \citet{biswas2025}.
+
+% =============================================================
+% BIBLIOGRAPHY
+% =============================================================
+\newpage
+\bibliographystyle{abbrvnat}
+\bibliography{ndvi_references}
+
+% ── Inline bibliography (fallback if .bib file not available) ──
+% Remove the \bibliography{} line above and uncomment below:
+%
+% \begin{thebibliography}{99}
+%
+% \bibitem[Biswas et al.(2025)]{biswas2025}
+% Biswas, U., Mahato, S., and Joshi, P.K. (2025).
+% \newblock Forest fire occurrence probability modelling using MaxEnt in India.
+% \newblock {\em Environmental Science and Pollution Research}, 32:4856--4878.
+%
+% \bibitem[Didan(2021)]{didan2021}
+% Didan, K. (2021).
+% \newblock {MODIS/Terra Vegetation Indices Monthly L3 Global 0.05Deg CMG V061}.
+% \newblock NASA EOSDIS Land Processes DAAC.
+% \newblock \url{https://doi.org/10.5067/MODIS/MOD13C2.061}
+%
+% \bibitem[Cleveland et al.(1990)]{cleveland1990stl}
+% Cleveland, R.B., Cleveland, W.S., McRae, J.E., and Terpenning, I. (1990).
+% \newblock {STL}: A seasonal-trend decomposition procedure based on loess.
+% \newblock {\em Journal of Official Statistics}, 6(1):3--73.
+%
+% \bibitem[Mann(1945)]{mann1945}
+% Mann, H.B. (1945).
+% \newblock Nonparametric tests against trend.
+% \newblock {\em Econometrica}, 13(3):245--259.
+%
+% \bibitem[Moran(1950)]{moran1950}
+% Moran, P.A.P. (1950).
+% \newblock Notes on continuous stochastic phenomena.
+% \newblock {\em Biometrika}, 37:17--23.
+%
+% \bibitem[Chuvieco et al.(2004)]{chuvieco2004}
+% Chuvieco, E., Cocero, D., Riano, D., Martin, P., Aguado, I.,
+% de la Riva, J., and Burgan, R. (2004).
+% \newblock Combining NDVI and surface temperature for the estimation of
+% live fuel moisture content in forest fire danger rating.
+% \newblock {\em Remote Sensing of Environment}, 92:322--331.
+%
+% \bibitem[Flannigan et al.(2000)]{flannigan2000}
+% Flannigan, M.D., Stocks, B.J., and Wotton, B.M. (2000).
+% \newblock Climate change and forest fires.
+% \newblock {\em Science of the Total Environment}, 262:221--229.
+%
+% \bibitem[Lundberg and Lee(2017)]{lundberg2017}
+% Lundberg, S.M. and Lee, S.I. (2017).
+% \newblock A unified approach to interpreting model predictions.
+% \newblock {\em Advances in Neural Information Processing Systems}, 30.
+%
+% \bibitem[Rodgers and Panwar(1988)]{rodgers1988}
+% Rodgers, W.A. and Panwar, H.S. (1988).
+% \newblock {\em Planning a Protected Area Network in India}.
+% \newblock Wildlife Institute of India, Dehradun.
+%
+% \end{thebibliography}
+
+\end{document}

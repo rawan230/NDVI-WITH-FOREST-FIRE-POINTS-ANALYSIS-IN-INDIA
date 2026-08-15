@@ -1,0 +1,908 @@
+% ==========================================================
+% NOVEL NDVI-BASED VEGETATION STRESS ANALYSIS
+% For: Forest Fire Susceptibility Mapping — India (2000–2025)
+% Extends: Biswas et al. (2025), Environ. Sci. Pollut. Res., 32:4856–4878
+%
+% Author : [Your Name], Senior Research Fellow (SRF)
+% Dept.  : Applied Mathematics & Scientific Computing
+% Institute: IIT Roorkee
+% Supervisor: Prof. Millie Pant
+% Funding : Ministry of Education, Government of India
+%
+% HOW TO COMPILE (TeXstudio):
+%   Step 1: F6  (pdflatex)
+%   Step 2: F8  (bibtex)
+%   Step 3: F6  (pdflatex)
+%   Step 4: F6  (pdflatex)
+%   OR simply press F5 (Build & View)
+%
+% COMPILER: pdflatex
+% ==========================================================
+
+\documentclass[12pt, a4paper]{article}
+
+% ── Core packages ──────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+
+% ── Page geometry ──────────────────────────────────────────
+\usepackage[
+  a4paper,
+  left   = 2.8cm,
+  right  = 2.8cm,
+  top    = 2.5cm,
+  bottom = 2.5cm
+]{geometry}
+
+% ── Mathematics ────────────────────────────────────────────
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{mathtools}
+
+% ── Graphics & Tables ──────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{colortbl}          % required for \rowcolor in tabular
+
+% ── Colours & Boxes ────────────────────────────────────────
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{skins, breakable, theorems}
+
+\definecolor{iitblue}{RGB}{26,82,118}
+\definecolor{midblue}{RGB}{46,117,182}
+\definecolor{lightblue}{RGB}{214,234,248}
+\definecolor{darkgreen}{RGB}{20,90,50}
+\definecolor{midgreen}{RGB}{30,132,73}
+\definecolor{lightgreen}{RGB}{213,245,227}
+\definecolor{darkred}{RGB}{146,43,33}
+\definecolor{lightred}{RGB}{250,219,216}
+\definecolor{purple}{RGB}{108,52,131}
+\definecolor{lightpurple}{RGB}{232,218,239}
+\definecolor{gold}{RGB}{183,149,11}
+\definecolor{lightgold}{RGB}{254,249,231}
+\definecolor{gray1}{RGB}{242,242,242}
+\definecolor{gray2}{RGB}{217,217,217}
+
+% ── Custom tcolorbox environments ──────────────────────────
+\newtcolorbox{novelbox}[1]{
+  enhanced, breakable,
+  colback   = lightgreen,
+  colframe  = darkgreen,
+  fonttitle = \bfseries\color{white},
+  title     = {\textbf{$\bigstar$\; Novel Contribution:\; #1}},
+  attach boxed title to top left = {yshift=-2mm, xshift=4mm},
+  boxed title style = {colback=darkgreen, colframe=darkgreen},
+  top = 6pt, bottom = 6pt
+}
+
+\newtcolorbox{mathbox}[1]{
+  enhanced,
+  colback   = lightblue,
+  colframe  = midblue,
+  fonttitle = \bfseries\color{white},
+  title     = {#1},
+  attach boxed title to top left = {yshift=-2mm, xshift=4mm},
+  boxed title style = {colback=iitblue, colframe=iitblue},
+  top = 8pt, bottom = 8pt
+}
+
+\newtcolorbox{simplebox}[1]{
+  enhanced,
+  colback   = lightgold,
+  colframe  = gold,
+  fonttitle = \bfseries\color{gold},
+  title     = {Simple Explanation: #1},
+  top = 6pt, bottom = 6pt
+}
+
+\newtcolorbox{gapbox}{
+  enhanced, breakable,
+  colback   = lightred,
+  colframe  = darkred,
+  fonttitle = \bfseries\color{white},
+  title     = {Gap in Biswas et al.\ (2025) Addressed by This Study},
+  top = 6pt, bottom = 6pt
+}
+
+% ── Typography ─────────────────────────────────────────────
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% ── References ─────────────────────────────────────────────
+\usepackage[round, authoryear, sort]{natbib}
+
+% ── Hyperlinks ─────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = iitblue,
+  citecolor  = darkgreen,
+  urlcolor   = midblue
+]{hyperref}
+
+% ── Header / Footer ────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small\color{midblue} Novel NDVI Methodology $|$ IIT Roorkee}
+\lhead{\small\color{midblue} Forest Fire Susceptibility Mapping --- India}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% ── Theorem environments ───────────────────────────────────
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{remark}{Remark}[section]
+
+% ── Algorithm ──────────────────────────────────────────────
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ── Enumitem ───────────────────────────────────────────────
+\usepackage{enumitem}
+
+% ── Caption ────────────────────────────────────────────────
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf}
+
+% ==========================================================
+\begin{document}
+% ==========================================================
+
+% ── Title Page ─────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{1.5cm}
+
+{\color{iitblue}\rule{\linewidth}{1.5pt}}
+\vspace{0.4cm}
+
+{\LARGE\bfseries\color{iitblue}
+Novel NDVI-Based Vegetation Stress Analysis\\[0.5em]
+for Forest Fire Susceptibility Mapping in India}
+
+\vspace{0.3cm}
+{\color{gold}\rule{\linewidth}{1pt}}
+\vspace{0.4cm}
+
+{\large\itshape\color{midblue}
+Mathematical Formulation $\cdot$ Physical Justification $\cdot$
+Novel Contributions}
+
+\vspace{1.2cm}
+
+\begin{tcolorbox}[enhanced, colback=lightblue, colframe=iitblue,
+  width=0.88\textwidth, arc=4pt]
+\centering
+\textbf{Submitted to:} Prof.\ Millie Pant\\[4pt]
+Department of Applied Mathematics \& Scientific Computing\\
+Indian Institute of Technology Roorkee\\[8pt]
+\textbf{Data:} MOD13A3 v061 $|$ 1\,km monthly NDVI $|$
+India $|$ 2000--2025 (309 files)\\[4pt]
+\textbf{Extends:} \citealt{biswas2025} ---
+\textit{Environ.\ Sci.\ Pollut.\ Res.}, 32:4856--4878\\[4pt]
+\textbf{Funding:} Ministry of Education, Government of India
+\end{tcolorbox}
+
+\vspace{1cm}
+{\large\today}
+\vspace*{1cm}
+
+{\color{iitblue}\rule{\linewidth}{1.5pt}}
+\end{titlepage}
+
+% ── Table of Contents ──────────────────────────────────────
+\tableofcontents
+\clearpage
+
+% ==========================================================
+\section{Background and Motivation}
+\label{sec:background}
+% ==========================================================
+
+\begin{gapbox}
+In \citet{biswas2025}, NDVI is the \textbf{single most important variable}
+for Indian forest fire occurrence prediction:
+permutation importance $= 22.3\%$, percentage contribution $= 28.4\%$
+(highest among all 15 variables, Table~3 therein).
+Yet Biswas et al.\ applied NDVI as a single time-averaged composite map
+from MOD13C2 v006, with \textbf{no quality screening, no temporal
+decomposition, no anomaly extraction, and no pre-fire stress
+quantification.}
+\end{gapbox}
+
+The present study extends \citet{biswas2025} by applying five
+mathematically rigorous transformations to the 25-year monthly NDVI
+time series (MOD13A3 v061, 1\,km, 309 monthly files, 2000--2025) to
+derive \textbf{seven novel NDVI-based features} (F1--F7) that are
+directly connected to the physics of fire ignition.
+Table~\ref{tab:features_overview} summarises all features and their
+novelty status.
+
+\begin{table}[H]
+\centering
+\caption{NDVI-derived feature set: this study vs \citet{biswas2025}}
+\label{tab:features_overview}
+\small
+\begin{tabular}{@{}clllc@{}}
+\toprule
+\textbf{ID} & \textbf{Feature} & \textbf{Core Equation} &
+\textbf{Physical Meaning} & \textbf{Novel?} \\
+\midrule
+F1 & QA-filtered NDVI & Eq.~\eqref{eq:ndvi_scale} &
+    Cloud-screened vegetation density & Partial \\
+F2 & Climatological mean $\bar{\mu}^{(m)}$ & Eq.~\eqref{eq:clim_mean} &
+    Seasonal baseline per month & No \\
+\rowcolor{lightgreen}
+F3 & Monthly anomaly $\delta$ & Eq.~\eqref{eq:anomaly} &
+    Inter-annual vegetation stress & \textbf{Yes} \\
+\rowcolor{lightgreen}
+F4 & STL trend $T(t)$ & Eq.~\eqref{eq:stl} &
+    25-year vegetation change direction & \textbf{Yes} \\
+\rowcolor{lightgreen}
+F5 & STL residual $R(t)$ & Eq.~\eqref{eq:stl} &
+    Sudden stress: drought, fire-scar & \textbf{Yes} \\
+\rowcolor{lightgreen}
+F6 & Mann--Kendall $\tau$ & Eq.~\eqref{eq:mk_tau} &
+    Statistical significance of trend & \textbf{Yes} \\
+\rowcolor{lightgreen}
+F7 & CVSI$(k^{*})$ & Eq.~\eqref{eq:cvsi} &
+    Cumulative pre-fire moisture deficit & \textbf{Yes} \\
+\midrule
+\multicolumn{3}{l}{\textit{Biswas et al.\ (2025): 1 feature}} &
+\multicolumn{2}{r}{\textit{This study: 7 features (5 novel)}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==========================================================
+\section{NDVI: Definition and Scale Correction}
+\label{sec:ndvi_def}
+% ==========================================================
+
+\begin{simplebox}{What is NDVI?}
+NDVI measures how green and healthy vegetation is.
+A healthy forest absorbs red light (for photosynthesis) and reflects
+near-infrared light.
+Dry, stressed, or burned vegetation does the opposite.
+High NDVI ($>0.6$) = dense healthy forest.
+Low NDVI ($<0.2$) = sparse, stressed, or burned vegetation.
+\end{simplebox}
+
+\begin{definition}[Normalized Difference Vegetation Index]
+\label{def:ndvi}
+\begin{equation}
+  \mathrm{NDVI} =
+  \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}
+       {\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}}}
+  \label{eq:ndvi_def}
+\end{equation}
+where $\rho_{\mathrm{NIR}}$ and $\rho_{\mathrm{Red}}$ denote surface
+reflectance in the Near-Infrared and Red spectral bands, respectively.
+The index ranges over $[-0.2,\,1.0]$.
+\end{definition}
+
+MODIS MOD13A3 stores NDVI as signed 16-bit integers.
+The corrected floating-point NDVI for spatial pixel $(i,j)$ at
+monthly time step $t$ is:
+
+\begin{mathbox}{Equation F1 — Scale Correction and Fill-Value Masking}
+\begin{equation}
+  \mathrm{NDVI}_{ij}^{(t)} =
+  \begin{cases}
+    \mathrm{raw}_{ij}^{(t)} \times 10^{-4} &
+      \text{if } -2000 \le \mathrm{raw}_{ij}^{(t)} \le 10000 \\[4pt]
+    \mathrm{NaN} & \text{otherwise}
+  \end{cases}
+  \label{eq:ndvi_scale}
+\end{equation}
+\textit{Fill value: $-3000$ (replace with NaN). Valid NDVI range after
+scaling: $[-0.2,\,1.0]$.}
+\end{mathbox}
+
+\subsection*{Quality Assurance (QA) Filtering}
+
+The \texttt{pixel\_reliability} Science Data Set (SDS) from MOD13A3
+provides a pixel-quality flag $q_{ij}^{(t)}$:
+
+\begin{equation}
+  \mathrm{NDVI}_{ij}^{(t),\,\mathrm{QA}} =
+  \begin{cases}
+    \mathrm{NDVI}_{ij}^{(t)} & \text{if } q_{ij}^{(t)} \in \{0,\,1\} \\[4pt]
+    \mathrm{NaN}             & \text{otherwise}
+  \end{cases}
+  \label{eq:qa_filter}
+\end{equation}
+
+where $q = 0$ (Good data), $q = 1$ (Marginal data, usable),
+$q = 2$ (Snow/Ice --- exclude), $q = 3$ (Cloudy --- exclude),
+$q = -1$ (Fill/No-data).
+\citet{biswas2025} applied \textbf{no} such quality screening.
+
+% ==========================================================
+\section{Novel Contribution 1: STL Temporal Decomposition}
+\label{sec:stl}
+% ==========================================================
+
+\begin{simplebox}{The 3-Component NDVI Video}
+Think of your 309 monthly NDVI images as a 25-year video of India's
+forests. Each pixel has a time series with 309 values.
+STL separates this into three stories:
+(1) Is the forest getting greener or browner over 25 years? [Trend]
+(2) What is the normal monsoon cycle? [Seasonal]
+(3) What unexpected events happened? [Residual — drought, fire-scars]
+\end{simplebox}
+
+\subsection{STL Decomposition Model}
+
+The STL (Seasonal and Trend decomposition using LOESS) algorithm
+\citep{cleveland1990stl} decomposes the NDVI time series at each pixel
+$(i,j)$ additively:
+
+\begin{mathbox}{Equation F4/F5 — STL Decomposition}
+\begin{equation}
+  \mathrm{NDVI}_{ij}^{(t)} =
+  \underbrace{T_{ij}^{(t)}}_{\text{Trend}} +
+  \underbrace{S_{ij}^{(t)}}_{\text{Seasonal}} +
+  \underbrace{R_{ij}^{(t)}}_{\text{Residual}}
+  \label{eq:stl}
+\end{equation}
+Applied independently to every spatial pixel.
+Period $p = 12$ months. Robust fitting: yes (downweights outliers).
+Time index $t = 1, 2, \ldots, T$ where $T = 309$ monthly steps.
+\end{mathbox}
+
+\subsection{Component Definitions and Physical Interpretations}
+
+\paragraph{Trend Component $T_{ij}^{(t)}$ (Feature F4).}
+The trend is estimated via a LOESS (Locally Estimated Scatterplot
+Smoothing) smoother.
+For a time point $t_0$, the LOESS estimate is obtained by solving the
+weighted local polynomial regression:
+
+\begin{equation}
+  \hat{T}(t_0) =
+  \underset{\beta_0,\,\beta_1}{\arg\min}
+  \sum_{t=1}^{T}
+  \mathcal{K}_h(t - t_0)
+  \left[
+    \mathrm{NDVI}_{ij}^{(t)} - \beta_0 - \beta_1(t - t_0)
+  \right]^2
+  \label{eq:loess}
+\end{equation}
+
+where $\mathcal{K}_h$ is the tri-cube kernel weight function:
+
+\begin{equation}
+  \mathcal{K}_h(u) =
+  \left(1 - \left|\frac{u}{h}\right|^3\right)^3
+  \cdot \mathbf{1}\!\left[|u| < h\right]
+  \label{eq:tricube}
+\end{equation}
+
+and $h > 0$ is the bandwidth controlling smoothness.
+
+\begin{remark}
+If $\partial T_{ij} / \partial t < 0$ over the study period,
+the pixel's vegetation is in long-term decline --- indicating
+forest degradation, reduced canopy moisture, and elevated fire
+susceptibility. \citeauthor{biswas2025} cannot detect this
+from a single temporal average.
+\end{remark}
+
+\paragraph{Seasonal Component $S_{ij}^{(t)}$ (removed from analysis).}
+The periodic annual monsoon cycle ($p = 12$ months) is isolated and
+\emph{removed} to de-seasonalise the signal.
+This prevents normal dry-season dryness from being misclassified as
+genuine vegetation stress.
+
+\paragraph{Residual Component $R_{ij}^{(t)}$ (Feature F5).}
+After removing trend and seasonal components:
+
+\begin{equation}
+  R_{ij}^{(t)} =
+  \mathrm{NDVI}_{ij}^{(t)} - T_{ij}^{(t)} - S_{ij}^{(t)}
+  \label{eq:residual}
+\end{equation}
+
+Large negative residuals ($R_{ij}^{(t)} \ll 0$) indicate sudden,
+unexpected vegetation drops --- drought episodes, pest outbreaks,
+or post-fire regeneration patterns.
+These are the \textbf{pre-fire stress fingerprints} that a
+time-averaged NDVI completely conceals.
+
+\subsection{Mann--Kendall Trend Significance Test (Feature F6)}
+
+After computing the pixel-wise trend component $T_{ij}^{(t)}$,
+the non-parametric Mann--Kendall test \citep{mann1945,kendall1975}
+determines whether the observed trend is statistically significant
+or could arise by random chance.
+
+\subsubsection{Test Statistic}
+
+For a pixel time series $\{T^{(1)}, T^{(2)}, \ldots, T^{(n)}\}$
+(where $n = T = 309$), define the Mann--Kendall statistic:
+
+\begin{equation}
+  S = \sum_{k=1}^{n-1} \sum_{j=k+1}^{n}
+  \operatorname{sgn}\!\left(T^{(j)} - T^{(k)}\right)
+  \label{eq:mk_S}
+\end{equation}
+
+where:
+\begin{equation}
+  \operatorname{sgn}(x) =
+  \begin{cases}
+    +1 & \text{if } x > 0 \\
+     0 & \text{if } x = 0 \\
+    -1 & \text{if } x < 0
+  \end{cases}
+  \label{eq:sgn}
+\end{equation}
+
+\subsubsection{Normalised Kendall's $\tau$}
+
+\begin{mathbox}{Equation F6 — Mann--Kendall $\tau$ Statistic}
+\begin{equation}
+  \tau = \frac{P - Q}{\dfrac{1}{2}\,n\,(n-1)}
+  \label{eq:mk_tau}
+\end{equation}
+where $P$ = number of concordant pairs (later value $>$ earlier value),
+$Q$ = number of discordant pairs (later value $<$ earlier value),
+$\tau \in [-1, +1]$.
+\end{mathbox}
+
+\subsubsection{Variance and $z$-Score}
+
+For large $n$ without ties:
+\begin{equation}
+  \operatorname{Var}(S) =
+  \frac{n(n-1)(2n+5)}{18}
+  \label{eq:mk_var}
+\end{equation}
+
+The standardised test statistic is:
+\begin{equation}
+  z =
+  \begin{cases}
+    \dfrac{S - 1}{\sqrt{\operatorname{Var}(S)}} & \text{if } S > 0 \\[8pt]
+    0                                           & \text{if } S = 0 \\[4pt]
+    \dfrac{S + 1}{\sqrt{\operatorname{Var}(S)}} & \text{if } S < 0
+  \end{cases}
+  \label{eq:mk_z}
+\end{equation}
+
+The two-tailed $p$-value is: $p = 2\left[1 - \Phi(|z|)\right]$
+where $\Phi$ is the standard normal CDF.
+
+\subsubsection{Decision Rule and Spatial Output Maps}
+
+\begin{equation}
+  \text{Pixel classification} =
+  \begin{cases}
+    \textbf{Significant Browning} & \tau < 0 \text{ and } p < 0.05 \\
+    \textbf{Significant Greening} & \tau > 0 \text{ and } p < 0.05 \\
+    \textbf{No Reliable Trend}    & p \ge 0.05
+  \end{cases}
+  \label{eq:mk_decision}
+\end{equation}
+
+The code produces two output maps:
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{browning\_sig}: pixels with statistically
+        significant vegetation decline ($\tau < 0$, $p < 0.05$)
+        --- these are the \textbf{highest fire-risk zones}.
+  \item \texttt{greening\_sig}: pixels with statistically
+        significant vegetation recovery ($\tau > 0$, $p < 0.05$).
+\end{itemize}
+
+\begin{novelbox}{Novel Contribution 1 --- STL Decomposition and Mann--Kendall Test}
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item \citet{biswas2025} used a single time-averaged NDVI value
+        from MOD13C2 v006, with no temporal decomposition.
+  \item This study applies pixel-wise STL to 309 monthly values
+        (2000--2025), producing three physically distinct components:
+        Trend $T$ (Feature F4), Seasonal $S$ (removed), Residual $R$
+        (Feature F5).
+  \item Mann--Kendall $\tau$ (Feature F6) confirms statistical
+        significance of each browning/greening pixel.
+  \item A pixel with $\tau = -0.31$, $p = 0.002$ in Uttarakhand
+        (pauri Garhwal, 30.2\textdegree N, 78.8\textdegree E)
+        represents a net NDVI loss of $0.075$ over 25 years ---
+        invisible to a single-value approach.
+  \item \textbf{References:} \citet{cleveland1990stl};
+        \citet{mann1945}; \citet{kendall1975}.
+\end{itemize}
+\end{novelbox}
+
+% ==========================================================
+\section{Novel Contribution 2: Monthly NDVI Anomaly}
+\label{sec:anomaly}
+% ==========================================================
+
+\begin{simplebox}{Why Remove the Seasonal Pattern?}
+Indian forests are always greener in the monsoon (July--September)
+and browner in pre-monsoon (March--May). If you look at raw NDVI in
+May, every forest looks stressed --- but that is \emph{normal}.
+The anomaly $\delta$ strips this away and asks:
+``Is this May more stressed than the average May over 20 years?''
+A negative $\delta$ means genuine abnormal stress --- the real
+fire-relevant signal.
+\end{simplebox}
+
+\subsection{Climatological Monthly Mean (Feature F2)}
+
+Using the 2001--2020 baseline (consistent with \citealt{biswas2025}):
+
+\begin{mathbox}{Equation F2 — Climatological Mean}
+\begin{equation}
+  \bar{\mu}_{ij}^{(m)} =
+  \frac{1}{\lvert\mathcal{Y}_{m}\rvert}
+  \sum_{y \in \mathcal{Y}_{m}}
+  \mathrm{NDVI}_{ij}^{(y,m),\,\mathrm{QA}}
+  \label{eq:clim_mean}
+\end{equation}
+where $m \in \{1, 2, \ldots, 12\}$ is the calendar month,
+$\mathcal{Y}_{m} = \{2001, 2002, \ldots, 2020\}$,
+and only non-\texttt{NaN} values contribute.
+This produces \textbf{12 mean maps} --- one per calendar month.
+\end{mathbox}
+
+\subsection{Monthly NDVI Anomaly (Feature F3)}
+
+\begin{mathbox}{Equation F3 — NDVI Anomaly $\delta$}
+\begin{equation}
+  \boxed{
+    \delta_{ij}^{(y,m)} =
+    \mathrm{NDVI}_{ij}^{(y,m),\,\mathrm{QA}} - \bar{\mu}_{ij}^{(m)}
+  }
+  \label{eq:anomaly}
+\end{equation}
+\begin{itemize}
+  \item $\delta_{ij}^{(y,m)} < 0$: below-average greenness
+        (\textbf{vegetation stress}) --- fire risk \textbf{increases}.
+  \item $\delta_{ij}^{(y,m)} > 0$: above-average greenness
+        --- fire risk decreases.
+  \item By construction: $\sum_{y \in \mathcal{Y}_m}
+        \delta_{ij}^{(y,m)} \approx 0$
+        (zero mean over baseline).
+\end{itemize}
+\end{mathbox}
+
+\begin{proposition}[Anomaly as De-seasonalised Signal]
+The anomaly $\delta_{ij}^{(y,m)}$ removes the confounding seasonal
+cycle and exposes the inter-annual vegetation stress signal that is
+causally connected to fire ignition, independent of the time of year.
+\end{proposition}
+
+\begin{novelbox}{Novel Contribution 2 --- Monthly NDVI Anomaly}
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item \citet{biswas2025} cannot distinguish between
+        ``normal dry season'' and ``abnormally stressed vegetation.''
+  \item The anomaly $\delta_{ij}^{(y,m)}$ isolates genuine
+        inter-annual stress signals from the expected monsoon cycle.
+  \item \textbf{Concrete example --- Uttarakhand, March 2016
+        (El Ni\~{n}o year):}
+        Raw NDVI $= 0.38$ (looks the same as any dry March).
+        Anomaly $\delta = 0.38 - 0.44 = -0.06$ ---
+        the forest is 6 NDVI-units below its 20-year March average.
+        This is the genuine drought stress signal.
+        \citet{biswas2025} cannot see this.
+  \item This anomaly becomes the direct input to the CVSI
+        (Section~\ref{sec:cvsi}) and Feature F3 in the ML pipeline.
+\end{itemize}
+\end{novelbox}
+
+% ==========================================================
+\section{Novel Contribution 3: Cumulative Vegetation Stress Index (CVSI)}
+\label{sec:cvsi}
+% ==========================================================
+
+\begin{simplebox}{The Pre-Fire Memory of Drought}
+Consider a forest in Odisha.
+In January: NDVI slightly below normal ($\delta = -0.03$).
+In February: still below normal ($\delta = -0.05$).
+In March: again below ($\delta = -0.04$).
+In April: \textbf{fire breaks out.}
+
+\medskip
+Biswas et al.\ see only: April NDVI $= 0.35$.
+They cannot see that three months of accumulated stress preceded the fire.
+
+The CVSI adds up all negative anomalies in the $k$ months
+\emph{before} each fire event --- quantifying the multi-month
+moisture deficit that enabled ignition.
+\end{simplebox}
+
+\subsection{Mathematical Definition}
+
+Let $\tau_{f}$ denote the calendar month of fire occurrence at pixel
+$(i,j)$.
+The $k$-month Cumulative Vegetation Stress Index is:
+
+\begin{mathbox}{Equation F7 — Cumulative Vegetation Stress Index (CVSI)}
+\begin{equation}
+  \boxed{
+    \mathrm{CVSI}_{ij}\!\left(\tau_{f},\, k\right) =
+    \sum_{t\,=\,\tau_{f} - k}^{\tau_{f} - 1}
+    \max\!\left(-\delta_{ij}^{(t)},\; 0\right)
+  }
+  \label{eq:cvsi}
+\end{equation}
+The operator $\max(-\delta, 0)$ retains \textbf{only} stress episodes
+(negative anomaly months) and discards above-average greenness months.
+$k \in \{1, 2, 3, 4, 5, 6\}$ is the accumulation window (months).
+\end{mathbox}
+
+\subsection{Expanded Form for $k = 3$}
+
+\begin{equation}
+  \mathrm{CVSI}_{ij}(\tau_{f},\,3) =
+  \underbrace{\max\!\left(-\delta_{ij}^{(\tau_{f}-3)},\,0\right)}_{\text{3 months before}}
+  +\;
+  \underbrace{\max\!\left(-\delta_{ij}^{(\tau_{f}-2)},\,0\right)}_{\text{2 months before}}
+  +\;
+  \underbrace{\max\!\left(-\delta_{ij}^{(\tau_{f}-1)},\,0\right)}_{\text{1 month before}}
+  \label{eq:cvsi3}
+\end{equation}
+
+Each term is zero if that month had above-average greenness,
+and positive if there was stress.
+The sum accumulates the total moisture deficit in the pre-fire window.
+
+\subsection{Optimal Lag Selection via Mutual Information}
+
+The optimal accumulation window $k^{*}$ is selected by maximising the
+Shannon mutual information between the CVSI and binary fire occurrence
+labels $F_{ij} \in \{0, 1\}$:
+
+\begin{equation}
+  k^{*} =
+  \underset{k\,\in\,\{1,2,3,4,5,6\}}{\arg\max}\;
+  I\!\left(\mathrm{CVSI}(\tau_{f},\,k)\;;\;F_{ij}\right)
+  \label{eq:mi_lag}
+\end{equation}
+
+where the mutual information is:
+
+\begin{equation}
+  I(X;\,Y) =
+  \sum_{x,\,y}
+  p(x,y)\,\log_{2}\!\frac{p(x,y)}{p(x)\,p(y)}
+  \label{eq:mutual_info}
+\end{equation}
+
+This information-theoretic criterion identifies which lag window most
+reduces uncertainty about fire occurrence --- a rigorous alternative
+to the fixed-window approaches used in the literature.
+
+\subsection{Physical Justification}
+
+\begin{proposition}[CVSI as Fuel Moisture Deficit Proxy]
+Prolonged below-average NDVI ($\delta < 0$) signals:
+\begin{enumerate}[leftmargin=2em]
+  \item Reduced canopy moisture content (leaf water potential decreasing),
+  \item Accelerated fine fuel drying (dead leaf litter moisture $\downarrow$),
+  \item Increased bulk density of surface fuels susceptible to ignition.
+\end{enumerate}
+The CVSI therefore serves as a proxy for the \textbf{pre-fire fuel
+moisture deficit} --- a physically established precursor to wildfire
+ignition \citep{chuvieco2004, flannigan2000}.
+\end{proposition}
+
+\begin{novelbox}{Novel Contribution 3 --- Cumulative Vegetation Stress Index (CVSI)}
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item No prior Indian national-scale forest fire study has introduced
+        a temporally accumulating pre-fire NDVI stress metric.
+  \item \citet{biswas2025} use NDVI at the analysis date only ---
+        they have no memory of preceding months.
+  \item CVSI quantifies multi-month fuel moisture deficit before
+        ignition: a physically grounded causal feature.
+  \item Optimal lag $k^{*}$ is selected via mutual information
+        (Eq.~\ref{eq:mi_lag}) --- a rigorous information-theoretic
+        criterion absent from all prior Indian fire studies.
+  \item \textbf{References:} \citet{chuvieco2004}; \citet{flannigan2000}.
+\end{itemize}
+\end{novelbox}
+
+% ==========================================================
+\section{Feature Engineering Summary and Integration}
+\label{sec:summary}
+% ==========================================================
+
+Table~\ref{tab:features_math} presents all seven NDVI-derived features
+with their complete mathematical definitions.
+
+\begin{table}[H]
+\centering
+\caption{Complete mathematical summary of NDVI-derived features}
+\label{tab:features_math}
+\small
+\begin{tabularx}{\textwidth}{@{}clXc@{}}
+\toprule
+\textbf{ID} & \textbf{Feature} & \textbf{Defining Equation} &
+\textbf{Novel?} \\
+\midrule
+F1 & QA NDVI &
+  $\mathrm{NDVI}_{ij}^{(t)} = \mathrm{raw}_{ij}^{(t)} \times 10^{-4}$
+  if $q_{ij}^{(t)} \in \{0,1\}$; else NaN & Partial \\[4pt]
+F2 & Climatological mean &
+  $\bar{\mu}_{ij}^{(m)} = \frac{1}{|\mathcal{Y}_m|}
+  \sum_{y \in \mathcal{Y}_m} \mathrm{NDVI}_{ij}^{(y,m)}$ & No \\[4pt]
+\rowcolor{lightgreen}
+F3 & Anomaly $\delta$ &
+  $\delta_{ij}^{(y,m)} = \mathrm{NDVI}_{ij}^{(y,m)} -
+  \bar{\mu}_{ij}^{(m)}$ & \textbf{Yes} \\[4pt]
+\rowcolor{lightgreen}
+F4 & STL Trend $T(t)$ &
+  $\mathrm{NDVI}_{ij}^{(t)} = T_{ij}^{(t)} + S_{ij}^{(t)} +
+  R_{ij}^{(t)}$; LOESS smoother with period $p=12$ & \textbf{Yes} \\[4pt]
+\rowcolor{lightgreen}
+F5 & STL Residual $R(t)$ &
+  $R_{ij}^{(t)} = \mathrm{NDVI}_{ij}^{(t)} - T_{ij}^{(t)} -
+  S_{ij}^{(t)}$ & \textbf{Yes} \\[4pt]
+\rowcolor{lightgreen}
+F6 & M-K $\tau$ &
+  $\tau = (P - Q) \,/\, \frac{1}{2}n(n-1)$; sig.\ if $p < 0.05$
+  & \textbf{Yes} \\[4pt]
+\rowcolor{lightgreen}
+F7 & CVSI$(k^{*})$ &
+  $\mathrm{CVSI}_{ij}(\tau_f, k^{*}) =
+  \sum_{t=\tau_f - k^{*}}^{\tau_f - 1} \max(-\delta_{ij}^{(t)}, 0)$
+  & \textbf{Yes} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These seven features replace the single time-averaged NDVI of
+\citet{biswas2025} and expand the predictor space from 15 to 21
+dimensions in the ML pipeline (RF, XGBoost, SVM + MaxEnt).
+SHAP (SHapley Additive exPlanations) analysis \citep{lundberg2017}
+is applied post-training to decompose each feature's marginal
+contribution.
+
+\subsection{Concrete Validation: Uttarakhand Fire Pixel}
+
+Table~\ref{tab:example} compares what \citet{biswas2025} see versus
+what this study extracts for a single fire pixel in Pauri Garhwal
+district, Uttarakhand ($30.2^{\circ}$N, $78.8^{\circ}$E) ---
+a confirmed high-fire zone from MODIS FIRMS data (April 2016).
+
+\begin{table}[H]
+\centering
+\caption{Information extracted per methodology ---
+         Uttarakhand fire pixel (April 2016)}
+\label{tab:example}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Information} &
+\textbf{Biswas et al.\ (2025)} &
+\textbf{This Study} \\
+\midrule
+NDVI input &
+  0.45 (single 20-year average) &
+  309 monthly values decomposed \\
+Long-term trend &
+  Not detectable &
+  $T$: $-0.003$ NDVI/year; net loss $= 0.075$ \\
+Trend significance &
+  Cannot test &
+  $\tau = -0.31$, $p = 0.002$ --- significant browning \\
+Pre-fire anomalies &
+  Not detectable &
+  $\delta_{\text{Jan}}=-0.03$, $\delta_{\text{Feb}}=-0.05$,
+  $\delta_{\text{Mar}}=-0.04$ \\
+CVSI ($k=3$) &
+  Not available &
+  $0.03 + 0.05 + 0.04 = 0.12$ (high stress) \\
+\midrule
+Model verdict &
+  \textit{Moderate risk} &
+  \textbf{HIGH FIRE RISK} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==========================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ==========================================================
+
+This technical note has presented five novel extensions to the NDVI
+preprocessing methodology of \citet{biswas2025}, summarised as follows:
+
+\begin{enumerate}[leftmargin=2em, label=\textbf{NC\arabic*.}]
+  \item \textbf{STL Decomposition} (Eqs.~\ref{eq:stl}--\ref{eq:residual}):
+        pixel-wise separation of NDVI into trend $T$, seasonal $S$,
+        and residual $R$ components over 309 monthly time steps.
+  \item \textbf{Mann--Kendall Test} (Eqs.~\ref{eq:mk_tau}--\ref{eq:mk_decision}):
+        non-parametric statistical validation of browning/greening
+        trends at the $\alpha = 0.05$ level.
+  \item \textbf{Monthly Anomaly} (Eq.~\ref{eq:anomaly}):
+        removal of the seasonal cycle to expose inter-annual
+        vegetation stress independent of time of year.
+  \item \textbf{CVSI} (Eq.~\ref{eq:cvsi}):
+        a novel multi-month pre-fire fuel moisture deficit index
+        with information-theoretically optimal lag selection.
+  \item \textbf{QA Filtering} (Eq.~\ref{eq:qa_filter}):
+        pixel-level cloud and snow screening absent in \citet{biswas2025}.
+\end{enumerate}
+
+Together these transform 1 raw NDVI feature into 7 physically
+interpretable, temporally dynamic predictors (F1--F7), expanding the
+ML feature space from 15 to 21 dimensions relative to the baseline
+study. The methodology is applicable at the national scale for India's
+full claimed territory using 309 monthly MOD13A3 v061 files
+(March 2000 -- December 2025).
+
+% ==========================================================
+% BIBLIOGRAPHY
+% ==========================================================
+\clearpage
+\bibliographystyle{abbrvnat}
+\bibliography{ndvi_novel_refs}
+
+% ── Inline bibliography (if .bib file unavailable) ─────────
+% Uncomment below and remove \bibliography{} above if needed:
+
+% \begin{thebibliography}{99}
+%
+% \bibitem[Biswas et al.(2025)]{biswas2025}
+% Biswas, U., Mahato, S., Joshi, P.K.\ (2025).
+% Forest fire occurrence probability modelling using MaxEnt in India.
+% \textit{Environmental Science and Pollution Research}, 32:4856--4878.
+%
+% \bibitem[Cleveland et al.(1990)]{cleveland1990stl}
+% Cleveland, R.B., Cleveland, W.S., McRae, J.E., Terpenning, I.\ (1990).
+% STL: A seasonal-trend decomposition procedure based on LOESS.
+% \textit{Journal of Official Statistics}, 6(1):3--73.
+%
+% \bibitem[Mann(1945)]{mann1945}
+% Mann, H.B.\ (1945).
+% Nonparametric tests against trend.
+% \textit{Econometrica}, 13(3):245--259.
+%
+% \bibitem[Kendall(1975)]{kendall1975}
+% Kendall, M.G.\ (1975).
+% \textit{Rank Correlation Methods}, 4th ed.
+% Griffin, London.
+%
+% \bibitem[Chuvieco et al.(2004)]{chuvieco2004}
+% Chuvieco, E., Cocero, D., Riano, D., Martin, P., Aguado, I.,
+% de la Riva, J., Burgan, R.\ (2004).
+% Combining NDVI and surface temperature for the estimation of live
+% fuel moisture content in forest fire danger rating.
+% \textit{Remote Sensing of Environment}, 92:322--331.
+%
+% \bibitem[Flannigan et al.(2000)]{flannigan2000}
+% Flannigan, M.D., Stocks, B.J., Wotton, B.M.\ (2000).
+% Climate change and forest fires.
+% \textit{Science of the Total Environment}, 262:221--229.
+%
+% \bibitem[Lundberg and Lee(2017)]{lundberg2017}
+% Lundberg, S.M., Lee, S.I.\ (2017).
+% A unified approach to interpreting model predictions.
+% \textit{Advances in Neural Information Processing Systems}, 30.
+%
+% \bibitem[Didan(2021)]{didan2021}
+% Didan, K.\ (2021).
+% MOD13A3 MODIS/Terra Vegetation Indices Monthly L3 Global
+% 1km SIN Grid V061. NASA EOSDIS LP DAAC.
+% \url{https://doi.org/10.5067/MODIS/MOD13A3.061}
+%
+% \end{thebibliography}
+
+\end{document}

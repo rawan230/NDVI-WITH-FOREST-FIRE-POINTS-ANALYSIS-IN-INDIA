@@ -631,7 +631,7 @@ anomaly_dev = cp.asarray(ndvi_anomaly)
 rng = np.random.RandomState(42)
 mi_scores = {}
 
-for k in range(1, 7):
+for k in range(1, 13):
     cvsi_k_dev = compute_cvsi_gpu(anomaly_dev, k)
     cvsi_k = to_host(cvsi_k_dev)
     del cvsi_k_dev
@@ -781,7 +781,16 @@ def piecewise_logistic_nll(params, x, y):
     return -np.sum(y*np.log(prob) + (1-y)*np.log(1-prob))
 
 
-def find_ndvi_threshold(ndvi_vals, fire_labels, zone_name='All India', n_theta=25, max_n=200_000, seed=42):
+def find_ndvi_threshold(ndvi_vals, fire_labels, zone_name='All India', n_theta=25, max_n=200_000, seed=42,
+                         degenerate_floor=0.01):
+    # Fit a piecewise-logistic P(fire|NDVI) breakpoint theta* via multi-start Nelder-Mead.
+    # theta is bounded to the physically valid NDVI range [NDVI_VALID_MIN, NDVI_VALID_MAX] so the
+    # optimizer can never wander outside it regardless of which start it came from. In addition, any
+    # winning solution where one regime (x<=theta or x>theta) holds fewer than degenerate_floor
+    # (default 1%) of the sample is a boundary regime-collapse -- the piecewise model has effectively
+    # become a single logistic and theta is not identifiable (the NLL surface is flat over a wide
+    # theta range). Such solutions are excluded from consideration; if every one of the n_theta
+    # starts degenerates this way, no numeric threshold is reported for this zone.
     valid = ~np.isnan(ndvi_vals)
     x, y = ndvi_vals[valid], fire_labels[valid]
     if len(x) < 200 or y.sum() < 30:
@@ -797,16 +806,47 @@ def find_ndvi_threshold(ndvi_vals, fire_labels, zone_name='All India', n_theta=2
     xs, ys = x[idx], y[idx]
 
     theta_grid = np.linspace(np.percentile(xs, 10), np.percentile(xs, 90), n_theta)
+    # theta must stay within the physically valid NDVI range; the other 4 params (logistic
+    # intercepts/slopes for each regime) are left unbounded.
+    param_bounds = [(None, None), (None, None), (None, None), (None, None),
+                     (NDVI_VALID_MIN, NDVI_VALID_MAX)]
+    n_total = len(xs)
+    floor_n = max(1, int(degenerate_floor * n_total))
+
     best_nll, best_theta, best_params = np.inf, None, None
+    best_nll_any, best_theta_any = np.inf, None
+    n_degenerate, n_attempted = 0, 0
     for theta_init in theta_grid:
         try:
             res = minimize(piecewise_logistic_nll, [0., -1., 0., -0.5, theta_init], args=(xs, ys),
-                            method='Nelder-Mead', options={'maxiter': 500, 'xatol': 1e-4})
-            if res.fun < best_nll:
-                best_nll, best_theta, best_params = res.fun, res.x[4], res.x
+                            method='Nelder-Mead', bounds=param_bounds,
+                            options={'maxiter': 500, 'xatol': 1e-4})
         except Exception:
-            pass
-    print(f'  {zone_name:20s}: theta* = {best_theta:.3f}  (n={len(xs):,}: {n_pos:,} fire / {n_neg:,} no-fire)')
+            continue
+        n_attempted += 1
+        theta_res = res.x[4]
+        n_below = int(np.sum(xs <= theta_res))
+        n_above = n_total - n_below
+        if res.fun < best_nll_any:
+            best_nll_any, best_theta_any = res.fun, theta_res
+        if n_below < floor_n or n_above < floor_n:
+            n_degenerate += 1   # boundary regime-collapse -- theta not identifiable here, skip
+            continue
+        if res.fun < best_nll:
+            best_nll, best_theta, best_params = res.fun, theta_res, res.x
+
+    if best_theta is None:
+        if best_theta_any is not None:
+            print(f'  [!!] {zone_name:20s}: no stable interior breakpoint -- single-regime logistic '
+                  f'dominates ({n_degenerate}/{n_attempted} starts degenerate; best degenerate-solution '
+                  f'theta={best_theta_any:.3f} NOT reported -- NLL surface is flat/non-identifiable there)')
+        else:
+            print(f'  [!!] {zone_name:20s}: optimization failed for all {n_theta} starts')
+        return None, None, (n_pos, n_neg)
+
+    degeneracy_note = f'  [{n_degenerate}/{n_attempted} starts degenerate, excluded]' if n_degenerate else ''
+    print(f'  {zone_name:20s}: theta* = {best_theta:.3f}  (n={len(xs):,}: {n_pos:,} fire / {n_neg:,} no-fire)'
+          f'{degeneracy_note}')
     return best_theta, best_params, (n_pos, n_neg)
 
 
@@ -824,8 +864,11 @@ for zone, bbox in BIO_ZONES.items():
     zmask = ((lon_grid >= bbox['lon_min']) & (lon_grid <= bbox['lon_max']) &
              (lat_grid >= bbox['lat_min']) & (lat_grid <= bbox['lat_max']))
     theta_z, _, _ = find_ndvi_threshold(ndvi_mean_map[zmask], fire_label_map[zmask], zone)
-    if theta_z is not None:
-        zone_thresholds[zone] = round(theta_z, 3)
+    # Store NaN (not a fabricated number) for zones with no stable interior breakpoint, so the
+    # degeneracy is explicit in the results table rather than silently missing an entry.
+    zone_thresholds[zone] = round(theta_z, 3) if theta_z is not None else np.nan
+
+print('\nZone threshold summary:', zone_thresholds)
 
 if theta_india is not None:
     a1, b1, a2, b2, _ = params_india

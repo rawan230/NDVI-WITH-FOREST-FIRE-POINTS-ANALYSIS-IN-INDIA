@@ -85,7 +85,11 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
   - Significant browning pixels (p<0.05): **150,108**
   - Significant greening pixels (p<0.05): **3,748,043**
 - **Step 1 → Step 2 link**: all 541,545 Step 1 fire points fell inside the NDVI grid bounds and matched an NDVI month (100%) — confirms the two steps' periods and geographic clips are consistent. **270,655** distinct pixels (2.12% of the grid) had ≥1 fire detection.
-- **CVSI optimal lag** (chosen by mutual information with real fire occurrence, not a proxy):
+- **CVSI optimal lag** (chosen by mutual information with real fire occurrence, not a proxy).
+  The sweep range was extended from k=1..6 to k=1..12 after the original run selected k=6 —
+  the edge of the tested range — with MI still rising, making it an unverified boundary
+  result. The extended sweep confirms a genuine **interior** optimum at **k\*=8**: MI rises
+  through k=8 then falls off for k=9..12, so k\*=8 is not itself a boundary artifact.
 
   | k (months) | MI score |
   |---:|---:|
@@ -93,28 +97,40 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
   | 2 | 0.00050 |
   | 3 | 0.00101 |
   | 4 | 0.00339 |
-  | 5 | 0.00676 |
-  | **6** | **0.00988** ← selected |
+  | 5 | 0.00678 |
+  | 6 | 0.00988 |
+  | 7 | 0.01151 |
+  | **8** | **0.01246** ← selected (interior optimum) |
+  | 9 | 0.01057 |
+  | 10 | 0.00949 |
+  | 11 | 0.00853 |
+  | 12 | 0.00761 |
 
 - **Global Moran's I** (mean NDVI, stride-8 coarsened grid): **I = 0.8925**, z = 795.86, p ≈ 0 — strong positive spatial autocorrelation (forest patches cluster). LISA (199 permutations): 13,566 High-High (dense forest core), 9,637 Low-Low (degraded/sparse forest), 228 Low-High, 77 High-Low (fragment/WUI-risk pixels).
-- **NDVI–fire breakpoint θ\*** (piecewise logistic, real fire/no-fire labels, balanced case-control sampling):
+- **NDVI–fire breakpoint θ\*** (piecewise logistic, real fire/no-fire labels, balanced case-control sampling).
+  The optimizer (`scipy.optimize.minimize`, Nelder-Mead) now bounds θ to NDVI's physically valid
+  range ([-0.2, 1.0]) on every multi-start run, and any winning solution where one regime
+  (x≤θ or x>θ) holds fewer than 1% of the sample is treated as a non-identifiable
+  boundary/regime-collapse solution and excluded rather than reported as a numeric θ\*:
 
-  | Zone | θ\* | Sample (fire / no-fire) |
-  |---|---:|---|
-  | All India | **0.529** | 100,000 / 100,000 |
-  | Western Ghats | 0.482 | 16,335 / 100,000 |
-  | Northeast | 0.668 | 100,000 / 100,000 |
-  | Central India | 0.504 | 81,298 / 100,000 |
-  | Deccan | 0.497 | 18,954 / 100,000 |
-  | Himalayan | −0.613 ⚠️ | 27,030 / 100,000 |
+  | Zone | θ\* | Sample (fire / no-fire) | Notes |
+  |---|---:|---|---|
+  | All India | **0.529** | 100,000 / 100,000 | unchanged |
+  | Western Ghats | 0.482 | 16,335 / 100,000 | unchanged (10/25 starts degenerate, correctly excluded) |
+  | Northeast | 0.668 | 100,000 / 100,000 | unchanged |
+  | Central India | 0.504 | 81,298 / 100,000 | unchanged |
+  | Deccan | 0.497 | 18,954 / 100,000 | unchanged (6/25 starts degenerate, correctly excluded) |
+  | Himalayan | **−0.001** ✅ | 27,030 / 100,000 | now physically valid — bounding alone was enough to resolve this zone into a genuine interior optimum |
 
-  **Caveat**: the Himalayan zone's fitted θ\* falls outside NDVI's valid
-  range (−0.2 to 1.0), indicating the optimizer hit a degenerate boundary
-  solution for that zone (likely driven by snow/rock cover and a different
-  fire-NDVI relationship than the other zones). Treat the national and
-  other zone thresholds as reliable; the Himalayan figure needs a follow-up
-  look (e.g. a bounded optimizer, or dropping permanently snow-covered
-  pixels before fitting) before it's used downstream.
+  **Resolved caveat**: the previous unbounded fit put the Himalayan θ\* at −0.613, outside
+  NDVI's valid range — diagnosed as a boundary regime-collapse (n_below=0, NLL surface
+  provably flat across θ∈[-2.0, -0.1605]) that an unconstrained Nelder-Mead could land
+  anywhere on. With `bounds=[...,(NDVI_VALID_MIN, NDVI_VALID_MAX)]` passed to every
+  multi-start call, the winning Himalayan solution moved to a genuine interior optimum
+  (θ\*=−0.001, n_below/n_above both well above the 1% degeneracy floor) — no zone needed to
+  be flagged as "no stable breakpoint" in this run. All five other zones' thresholds are
+  numerically unchanged (only the optimizer's bounds/degeneracy-handling changed, not the
+  underlying data or method).
 
 ### Outputs (`NDVI_Fire_Susceptibility_Outputs/`)
 
@@ -124,12 +140,23 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
 ```
 NDVI_Fire_Susceptibility_Outputs/
 ├── F1_NDVI_QA_mean.tif                    F6_MannKendall_tau.tif
-├── F2_NDVI_climatological_June.tif        F7_CVSI_k6.tif
+├── F2_NDVI_climatological_June.tif        F7_CVSI_k8.tif
 ├── F3_NDVI_anomaly_mean.tif                F8_LISA_cluster.tif
 ├── F4_NDVI_trend_2x12MA.tif                F9_NDVI_below_threshold_0.529.tif
 ├── F5_NDVI_residual_mean.tif               F10_fire_count_Step1.tif
 └── *.png                                   (validation, F1/F3, F4/F6, F7, F8, F9, F10 plots)
 ```
+
+> **Downstream note (2026-08-15 fix):** the CVSI GeoTIFF filename changed from
+> `F7_CVSI_k6.tif` to `F7_CVSI_k8.tif` (k\* moved from 6 to 8 after extending the
+> mutual-information sweep to a confirmed interior optimum — see Results above). Step 4
+> (`Integrated_Analysis/Step4_Integrated_FireRisk_Analysis.ipynb`) currently hardcodes
+> `'ndvi_cvsi_k6': 'F7_CVSI_k6.tif'` in its `ndvi_feature_files` dict — as written, it will
+> **silently skip the CVSI feature** (print a `WARNING: missing ... F7_CVSI_k6.tif` and drop
+> the column) rather than error, unless that dict entry is updated to `'ndvi_cvsi_k8':
+> 'F7_CVSI_k8.tif'` before Step 4 is next re-run. The F9 breakpoint file is unaffected — Step
+> 4 already globs for `F9_NDVI_below_threshold_*.tif` rather than hardcoding the fitted
+> threshold value in the filename.
 
 ## Citation
 
