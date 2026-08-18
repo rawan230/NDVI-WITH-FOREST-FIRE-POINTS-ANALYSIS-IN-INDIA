@@ -149,13 +149,14 @@ NDVI_Fire_Susceptibility_Outputs/
 
 > **Downstream note (2026-08-15 fix, closed):** the CVSI GeoTIFF filename changed from
 > `F7_CVSI_k6.tif` to `F7_CVSI_k8.tif` (k\* moved from 6 to 8 after extending the
-> mutual-information sweep to a confirmed interior optimum — see Results above). Step 5
-> (`Integrated_Analysis/Step5_Integrated_FireRisk_Analysis.ipynb`) originally still hardcoded
+> mutual-information sweep to a confirmed interior optimum — see Results above). Step 6
+> (`Integrated_Analysis/Step6_Integrated_FireRisk_Analysis.ipynb`, renumbered 2026-08-19
+> from Step 5 — see that repo's README) originally still hardcoded
 > `'ndvi_cvsi_k6': 'F7_CVSI_k6.tif'` in its `ndvi_feature_files` dict, which would have
 > **silently skipped the CVSI feature** (print a `WARNING: missing ... F7_CVSI_k6.tif` and
 > drop the column) rather than error — that dict entry has since been updated to
 > `'ndvi_cvsi_k8': 'F7_CVSI_k8.tif'`, confirmed present in the current notebook. The F9
-> breakpoint file was never affected — Step 5 globs for `F9_NDVI_below_threshold_*.tif`
+> breakpoint file was never affected — Step 6 globs for `F9_NDVI_below_threshold_*.tif`
 > rather than hardcoding the fitted threshold value in the filename.
 
 ## Citation
