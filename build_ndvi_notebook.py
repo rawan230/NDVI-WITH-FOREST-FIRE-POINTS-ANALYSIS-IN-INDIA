@@ -47,6 +47,7 @@ are fixed here:
 | 8 | A dead, commented-out duplicate of the Moran's I cell was left in the notebook and errored on execution | Removed |
 | 9 | No GPU usage anywhere — pure CPU NumPy for every array op | GPU-accelerated (CuPy, auto-detect with NumPy fallback) for anomaly/climatology, decomposition, Mann-Kendall, and CVSI — same auto-detect pattern as Step 1 |
 | 10 | NDVI files spanned 2000-03 to 2025-12; processed regardless of Step 1's fire-data study period | Filtered to the exact Nov 2000 – Dec 2022 window (266 months, zero gaps) |
+| 11 | **No India boundary masking at all** — the grid's spatial extent came purely from the raw NDVI GeoTIFFs' own raster bounds, so valid-NDVI pixels in neighbouring countries (Pakistan, Nepal, Bangladesh, Myanmar, Sri Lanka, Bhutan) were included in every feature | Dissolved `India_State_Boundary.shp` (reused from `LST_analysis/`, same convention as every other step) rasterized onto the NDVI grid and applied to `ndvi_stack` before any feature is computed |
 
 ### Novel contributions delivered by this step
 
@@ -134,6 +135,7 @@ from datetime import datetime, timedelta
 from tqdm import tqdm
 
 import rasterio
+from rasterio.features import rasterize
 from scipy.optimize import minimize
 from scipy.special import expit, erf as erf_cpu
 from scipy.ndimage import zoom
@@ -208,6 +210,11 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 FIRE_CSV = Path(r"D:\FOREST FIRE MAPPING(INDIA)\Forest fire Extraction in INDIA(2000-2022)"
                  r"\Forest_Fire_Outputs\all_forest_fires_2000_2022.csv")
 
+# India boundary (dissolved State boundary, not Country boundary -- avoids slivers near the
+# Palk Strait). Reused from LST_analysis/, same convention as every other step in this
+# pipeline (Steps 1, 3, 4, 5a, 5b, 6, 8) -- not copied into this folder.
+BOUNDARY_SHP = Path(r"D:\FOREST FIRE MAPPING(INDIA)\LST_analysis\India_State_Boundary.shp")
+
 # Study period -- MATCHES Step 1 exactly, for direct pixel/month alignment
 STUDY_START = pd.Timestamp("2000-11-01")
 STUDY_END   = pd.Timestamp("2022-12-15")
@@ -236,6 +243,7 @@ BIO_ZONES = {
 print("[OK] Configuration loaded")
 print(f"   NDVI raw folder : {NDVI_RAW_DIR}  (exists: {NDVI_RAW_DIR.exists()})")
 print(f"   Fire CSV (Step1): {FIRE_CSV}  (exists: {FIRE_CSV.exists()})")
+print(f"   Boundary shp    : {BOUNDARY_SHP}  (exists: {BOUNDARY_SHP.exists()})")
 print(f"   Output folder   : {OUT_DIR}")
 print(f"   Study period    : {STUDY_START.date()} -> {STUDY_END.date()}  (matches Step 1)")
 """))
@@ -367,8 +375,71 @@ print(f"  Memory usage   : {ndvi_stack.nbytes / 1e9:.2f} GB")
 print(f"{'='*55}")
 """))
 
-# ── Cell: Step 4B validation plots ───────────────────────────────
-cells.append(md(r"""## 🔎 Step 4B — Quick Visual Validation"""))
+# ── Cell: Step 4B India boundary mask ────────────────────────────
+cells.append(md(r"""## 🗺️ Step 4B — India Boundary Mask (Exact State-Boundary Clip)
+Every other step in this pipeline (1, 3, 4, 5a, 5b, 6, 8) clips its raster
+outputs to India's exact territory using the dissolved `India_State_Boundary.shp`
+polygon (reprojected from its raw EPSG:3857 coordinates to EPSG:4326), which
+excludes neighbouring-country land pixels (Pakistan, Nepal, Bangladesh, Myanmar,
+Sri Lanka, Bhutan) that the raw NDVI GeoTIFFs' own rectangular raster extent
+does not. **This step previously had no boundary masking at all** — only
+NaN-masking of missing NDVI values, which excludes ocean but not neighbouring-
+country land with valid NDVI. Fixed here using the exact same reused-shapefile,
+set-CRS/reproject/dissolve/rasterize pattern as every other step (not copied
+into this folder).
+
+The mask is applied directly to `ndvi_stack` (in place), the same way Step 3
+(LST) masks its raw day/night frames — every downstream feature (climatology,
+anomaly, trend/residual decomposition, Mann-Kendall, CVSI, LISA, breakpoint
+fit, final GeoTIFF export) derives from this array, so masking it here, before
+any feature is computed, propagates the clip through the whole pipeline
+without needing to be re-applied cell by cell."""))
+
+cells.append(code(r"""print("Loading India boundary (reused from LST_analysis/, same convention as every other step)...")
+
+india_boundary = gpd.read_file(BOUNDARY_SHP)
+print(f"  Loaded {len(india_boundary)} polygons from {BOUNDARY_SHP.name}")
+
+# Ships without a .prj (crs is None); raw coordinates are EPSG:3857 (Web Mercator)
+# meters, not lon/lat -- same fix applied identically in every other step.
+if india_boundary.crs is None:
+    india_boundary = india_boundary.set_crs("EPSG:3857", allow_override=True)
+india_boundary = india_boundary.to_crs("EPSG:4326")
+
+india_geom = india_boundary.dissolve(by=None).geometry.iloc[0]
+print(f"  Dissolved to national boundary  "
+      f"(bounds: lon=[{india_geom.bounds[0]:.2f}, {india_geom.bounds[2]:.2f}], "
+      f"lat=[{india_geom.bounds[1]:.2f}, {india_geom.bounds[3]:.2f}])")
+
+# Exact point-in-polygon India mask, rasterized onto the NDVI grid using its
+# own affine transform (not a bounding-box filter)
+india_mask = rasterize(
+    [(india_geom, 1)], out_shape=(H, W), transform=transform_ref, fill=0, dtype=np.uint8
+).astype(bool)
+
+n_total = H * W
+n_inside = int(india_mask.sum())
+print(f"  Grid          : {H} x {W} = {n_total:,} px")
+print(f"  Inside India  : {n_inside:,} px  ({100*n_inside/n_total:.2f}% of grid)")
+print(f"  Outside India : {n_total - n_inside:,} px  ({100*(n_total-n_inside)/n_total:.2f}% of grid) -- "
+      f"ocean + neighbouring-country land (Pakistan, Nepal, Bangladesh, Myanmar, Sri Lanka, Bhutan) now excluded")
+
+# Apply BEFORE any feature is computed -- mutates ndvi_stack in place so every
+# downstream cell (which all reference this same variable) is masked
+# automatically, rather than needing the mask threaded into each one by hand.
+n_valid_before = int(np.sum(~np.isnan(ndvi_stack)))
+ndvi_stack[:, ~india_mask] = np.nan
+n_valid_after = int(np.sum(~np.isnan(ndvi_stack)))
+print(f"  Valid NDVI observations (all {T} months, QA-masked): {n_valid_before:,} -> {n_valid_after:,}  "
+      f"({n_valid_before - n_valid_after:,} removed, "
+      f"{100*(n_valid_before-n_valid_after)/max(n_valid_before,1):.2f}%)")
+
+np.save(OUT_DIR / 'india_mask.npy', india_mask)
+print('[OK] India boundary mask applied to the NDVI stack -- propagates to every downstream feature')
+"""))
+
+# ── Cell: Step 4C validation plots ───────────────────────────────
+cells.append(md(r"""## 🔎 Step 4C — Quick Visual Validation"""))
 
 cells.append(code(r"""fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
@@ -922,7 +993,10 @@ lisa_upscaled = zoom(lisa_sig, stride, order=0)[:H, :W]
 feature_paths['F8'] = save_feature_geotiff(lisa_upscaled.astype(np.float32), 'F8_LISA_cluster', meta_ref, OUT_DIR)
 
 if theta_india is not None:
-    ndvi_below_thresh = (ndvi_mean_map < theta_india).astype(np.float32)
+    # np.where keeps NaN (not False/0.0) at masked-out (outside-India / no-data) pixels --
+    # a plain boolean cast would silently mislabel them as "not below threshold".
+    ndvi_below_thresh = np.where(np.isnan(ndvi_mean_map), np.nan,
+                                  (ndvi_mean_map < theta_india).astype(np.float32))
     feature_paths['F9'] = save_feature_geotiff(
         ndvi_below_thresh, f'F9_NDVI_below_threshold_{theta_india:.3f}', meta_ref, OUT_DIR)
 
