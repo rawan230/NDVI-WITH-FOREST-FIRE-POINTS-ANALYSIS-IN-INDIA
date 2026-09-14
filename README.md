@@ -115,7 +115,7 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
 
   | Zone | θ\* | Sample (fire / no-fire) | Notes |
   |---|---:|---|---|
-  | All India | **0.529** | 100,000 / 100,000 | unchanged |
+  | All India | **0.529** | 100,000 / 100,000 | superseded — see boundary-masking update below |
   | Western Ghats | 0.482 | 16,335 / 100,000 | unchanged (10/25 starts degenerate, correctly excluded) |
   | Northeast | 0.668 | 100,000 / 100,000 | unchanged |
   | Central India | 0.504 | 81,298 / 100,000 | unchanged |
@@ -132,6 +132,22 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
   numerically unchanged (only the optimizer's bounds/degeneracy-handling changed, not the
   underlying data or method).
 
+  **2026-08-21 update — India boundary masking added** (commit `b7c7d3c`): this was the one
+  step in the whole pipeline with no India-boundary clipping at all — the raw NDVI grid's
+  rectangular raster bounds silently included valid NDVI signal from Pakistan, Nepal,
+  Bangladesh, Myanmar, Sri Lanka, and Bhutan in every downstream feature (climatology,
+  anomaly, trend/residual decomposition, Mann-Kendall, CVSI, LISA, and the breakpoint fit
+  above). Fixed with the same set-CRS(3857)/reproject(4326)/dissolve/rasterize convention
+  used by every other step. Verified via full re-execution: 8,573,393 px (67.2% of the raw
+  grid) now correctly excluded — the post-mask in-India pixel count (4,161,009) matches
+  Step 6's own count exactly. Effect on the numbers above: **All-India θ\* shifted
+  0.529 → 0.535** (national only; a small, expected change from restricting the label
+  population to genuine India-only pixels — the current output file is
+  `F9_NDVI_below_threshold_0.535.tif`, not `_0.529.tif`), **CVSI optimal lag k\*=8
+  unchanged**. The other four regional zones were not re-run individually in that pass; if
+  citing zone-level θ\* in the paper, use the National number as boundary-masking-corrected
+  and treat the regional numbers as pre-mask unless independently re-verified.
+
 ### Outputs (`NDVI_Fire_Susceptibility_Outputs/`)
 
 10 features exported as GeoTIFF (F1–F10, `.tif`, not tracked in git — see
@@ -142,7 +158,7 @@ NDVI_Fire_Susceptibility_Outputs/
 ├── F1_NDVI_QA_mean.tif                    F6_MannKendall_tau.tif
 ├── F2_NDVI_climatological_June.tif        F7_CVSI_k8.tif
 ├── F3_NDVI_anomaly_mean.tif                F8_LISA_cluster.tif
-├── F4_NDVI_trend_2x12MA.tif                F9_NDVI_below_threshold_0.529.tif
+├── F4_NDVI_trend_2x12MA.tif                F9_NDVI_below_threshold_0.535.tif
 ├── F5_NDVI_residual_mean.tif               F10_fire_count_Step1.tif
 └── *.png                                   (validation, F1/F3, F4/F6, F7, F8, F9, F10 plots)
 ```
