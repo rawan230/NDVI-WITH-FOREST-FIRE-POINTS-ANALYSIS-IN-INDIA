@@ -10,6 +10,67 @@ feature here is directly aligned, pixel and month, with Step 1's output.
 **Data:** MOD13A3.061, monthly 1km NDVI, NASA AppEEARS
 **Study period:** 1 Nov 2000 – 15 Dec 2022 — matches Step 1 exactly (266 months, zero gaps)
 
+## Why this step, and how
+
+NDVI is used here as a proxy for vegetation moisture/fuel condition: healthy,
+water-rich canopy has high NDVI and burns less readily, while browning/drying
+vegetation (falling NDVI, rising cumulative moisture deficit) is a well-established
+precursor signal for fire risk in the remote-sensing fire-danger literature (e.g.
+the NDVI-based fuel-moisture and fire-danger indices reviewed in Chuvieco et al.,
+*Remote Sensing of Environment*, 2004, and the vegetation-condition components of
+national fire-danger rating systems). This step also does double duty as the
+pipeline's geometric foundation: because NDVI is the first full-resolution national
+raster product processed (1km, 3641×3504, EPSG:4326), its pixel grid becomes the
+common reprojection target for every later step (LST in Step 3, FLDAS climatic
+variables and land cover in Step 4, terrain/accessibility in Step 5, and the
+integrated stack in Step 6) — one grid defined once, rather than each step
+re-deriving its own and risking misalignment. Each of the 9 features exists for a
+distinct conceptual reason: **climatology** (F2) establishes what "normal" NDVI
+looks like per month/pixel; **anomaly** (F3) measures deviation from that normal,
+i.e. abnormal stress; **trend** (F4) and **residual** (F5) separate a slow-moving
+vegetation-health trajectory from short-term noise; **Mann-Kendall τ** (F6) tests
+whether that trend is statistically real rather than random drift; **CVSI** (F7)
+accumulates recent negative anomalies into a single pre-fire stress score, since
+fire risk depends on antecedent dryness, not one month's snapshot; **LISA** (F8)
+identifies spatial clusters of degraded vegetation that a purely per-pixel feature
+would miss; and the **breakpoint θ\*** (F9) converts continuous NDVI into a single,
+empirically fire-relevant threshold usable as a binary risk indicator. Downstream,
+Steps 3–6 reproject their own rasters onto this grid and Step 6 joins all nine
+NDVI-derived columns (plus the Step 1 fire-count raster) into the integrated
+feature table that Steps 7–8 train models on.
+
+## Comparison against Biswas et al. (2025)
+
+Biswas et al. use a single monthly NDVI value from **MODIS-Terra MOD13C2 v006 at
+0.05° (~5.5 km)** resolution as one input among their 15 predictors — in their
+MaxEnt model it is the single most important predictor (22.3% permutation
+importance / 28.4% percent contribution, their Table 3), but it enters the model
+as one raw number per pixel-month, with no further temporal or spatial decomposition.
+This step differs in both resolution and depth:
+
+- **Resolution**: MOD13A3.061 at 1 km native grid here vs. MOD13C2 v006 at 0.05°
+  (~5.5 km) in Biswas et al. — roughly 30× finer per-pixel area.
+- **Temporal decomposition**: this step separates the one raw NDVI signal into
+  climatology, anomaly, a GPU-vectorized classical 2×12-month moving-average
+  trend/residual decomposition, and a GPU-vectorized Mann-Kendall τ significance
+  test — none of which appear anywhere in Biswas et al.'s MaxEnt-only treatment.
+- **A fire-data-driven antecedent-stress index (CVSI)**: an optimal cumulative-lag
+  vegetation-stress index whose lag k\* (=8 months) is chosen by real mutual
+  information against Step 1's actual fire/no-fire occurrence, not assumed from
+  the literature or fit as a free MaxEnt parameter — a genuinely novel construct
+  absent from Biswas et al. entirely.
+- **Spatial clustering (LISA)**: Local Moran's I identifies High-High/Low-Low/
+  High-Low/Low-High vegetation clusters, capturing neighborhood-scale
+  fragmentation/degradation patterns a per-pixel-only feature set cannot.
+- **An empirically fit fire-relevant threshold (θ\*)**: a piecewise-logistic
+  breakpoint fit directly on real fire/no-fire pixel labels (nationally and per
+  biogeographic zone), rather than an arbitrary or literature-assumed NDVI cutoff.
+
+None of the last three (CVSI's data-driven lag, LISA, and the fitted breakpoint)
+exist in Biswas et al.'s methodology — they are this step's genuine methodological
+contributions beyond replicating a finer-resolution version of their single NDVI
+predictor.
+
 ## What changed vs. the previous version of this notebook
 
 | # | Problem in previous version | Fix in this version |
@@ -82,55 +143,70 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
 - **Anomaly**: range [-1.181, 1.167], mean ≈ 0.0036 (correctly centered near zero).
 - **Trend/seasonal/residual decomposition**: 254-step GPU moving-average loop in **2 seconds** (replacing a per-pixel loop that projected ≈9+ hours and crashed).
 - **Mann-Kendall trend significance**: 265-step GPU lag-sweep in **3m37s** across the full national grid.
-  - Significant browning pixels (p<0.05): **150,108**
-  - Significant greening pixels (p<0.05): **3,748,043**
-- **Step 1 → Step 2 link**: all 541,545 Step 1 fire points fell inside the NDVI grid bounds and matched an NDVI month (100%) — confirms the two steps' periods and geographic clips are consistent. **270,655** distinct pixels (2.12% of the grid) had ≥1 fire detection.
+  - Significant browning pixels (p<0.05): ~~150,108 (pre-mask)~~ **147,206** (current, post-boundary-mask — see 2026-08-21 update below)
+  - Significant greening pixels (p<0.05): ~~3,748,043 (pre-mask)~~ **3,731,210** (current, post-boundary-mask)
+- **Step 1 → Step 2 link**: all 541,545 Step 1 fire points fell inside the NDVI grid bounds and matched an NDVI month (100%) — confirms the two steps' periods and geographic clips are consistent. **270,655** distinct pixels (2.12% of the grid) had ≥1 fire detection. (Unaffected by the boundary-mask fix below — Step 1's points were already India-forest-filtered.)
 - **CVSI optimal lag** (chosen by mutual information with real fire occurrence, not a proxy).
   The sweep range was extended from k=1..6 to k=1..12 after the original run selected k=6 —
   the edge of the tested range — with MI still rising, making it an unverified boundary
   result. The extended sweep confirms a genuine **interior** optimum at **k\*=8**: MI rises
   through k=8 then falls off for k=9..12, so k\*=8 is not itself a boundary artifact.
+  Table below is the **current, post-boundary-mask** sweep (see 2026-08-21 update) — MI
+  values shifted marginally from the pre-mask run (e.g. k=8 was 0.01246, now 0.01257) because
+  the background/fire pixel population used for MI no longer includes neighboring-country
+  pixels; the selected lag itself (k\*=8, interior optimum) is unchanged either way.
 
   | k (months) | MI score |
   |---:|---:|
-  | 1 | 0.00151 |
-  | 2 | 0.00050 |
-  | 3 | 0.00101 |
-  | 4 | 0.00339 |
-  | 5 | 0.00678 |
-  | 6 | 0.00988 |
-  | 7 | 0.01151 |
-  | **8** | **0.01246** ← selected (interior optimum) |
-  | 9 | 0.01057 |
-  | 10 | 0.00949 |
-  | 11 | 0.00853 |
-  | 12 | 0.00761 |
+  | 1 | 0.00152 |
+  | 2 | 0.00049 |
+  | 3 | 0.00100 |
+  | 4 | 0.00333 |
+  | 5 | 0.00690 |
+  | 6 | 0.00948 |
+  | 7 | 0.01157 |
+  | **8** | **0.01257** ← selected (interior optimum) |
+  | 9 | 0.01036 |
+  | 10 | 0.00936 |
+  | 11 | 0.00831 |
+  | 12 | 0.00739 |
 
-- **Global Moran's I** (mean NDVI, stride-8 coarsened grid): **I = 0.8925**, z = 795.86, p ≈ 0 — strong positive spatial autocorrelation (forest patches cluster). LISA (199 permutations): 13,566 High-High (dense forest core), 9,637 Low-Low (degraded/sparse forest), 228 Low-High, 77 High-Low (fragment/WUI-risk pixels).
+- **Global Moran's I** (mean NDVI, stride-8 coarsened grid, current post-boundary-mask run):
+  **I = 0.8322**, z = 742.105, p ≈ 0 — strong positive spatial autocorrelation (forest patches
+  cluster). LISA (199 permutations, p<0.05): 13,412 High-High (dense forest core), 9,254
+  Low-Low (degraded/sparse forest), 197 Low-High, 77 High-Low (fragment/WUI-risk pixels).
+  (Pre-mask run reported I = 0.8925, z = 795.86, HH=13,566/LL=9,637/LH=228/HL=77 — superseded,
+  see 2026-08-21 update below; kept here only for change-tracking.)
 - **NDVI–fire breakpoint θ\*** (piecewise logistic, real fire/no-fire labels, balanced case-control sampling).
-  The optimizer (`scipy.optimize.minimize`, Nelder-Mead) now bounds θ to NDVI's physically valid
+  The optimizer (`scipy.optimize.minimize`, Nelder-Mead) bounds θ to NDVI's physically valid
   range ([-0.2, 1.0]) on every multi-start run, and any winning solution where one regime
   (x≤θ or x>θ) holds fewer than 1% of the sample is treated as a non-identifiable
-  boundary/regime-collapse solution and excluded rather than reported as a numeric θ\*:
+  boundary/regime-collapse solution and excluded rather than reported as a numeric θ\*.
+  **Table below is the current, post-boundary-mask run** (2026-08-21, commit `b7c7d3c`) —
+  all six values, national and all five zones, come from that single re-execution
+  (notebook cell execution counts 6→15 run sequentially in one kernel session, confirmed
+  from the saved `.ipynb` outputs):
 
   | Zone | θ\* | Sample (fire / no-fire) | Notes |
   |---|---:|---|---|
-  | All India | **0.529** | 100,000 / 100,000 | superseded — see boundary-masking update below |
-  | Western Ghats | 0.482 | 16,335 / 100,000 | unchanged (10/25 starts degenerate, correctly excluded) |
-  | Northeast | 0.668 | 100,000 / 100,000 | unchanged |
-  | Central India | 0.504 | 81,298 / 100,000 | unchanged |
-  | Deccan | 0.497 | 18,954 / 100,000 | unchanged (6/25 starts degenerate, correctly excluded) |
-  | Himalayan | **−0.001** ✅ | 27,030 / 100,000 | now physically valid — bounding alone was enough to resolve this zone into a genuine interior optimum |
+  | All India | **0.535** | 100,000 / 100,000 | post-mask (was 0.529 pre-mask) |
+  | Western Ghats | 0.484 | 16,335 / 100,000 | post-mask (was 0.482; 11/25 starts degenerate, correctly excluded — was 10/25 pre-mask) |
+  | Northeast | 0.643 | 100,000 / 100,000 | post-mask (was 0.668 pre-mask) |
+  | Central India | 0.506 | 81,298 / 100,000 | post-mask (was 0.504 pre-mask) |
+  | Deccan | 0.498 | 18,954 / 100,000 | post-mask (was 0.497; 5/25 starts degenerate, correctly excluded — was 6/25 pre-mask) |
+  | Himalayan | **0.530** | 27,007 / 100,000 | post-mask — supersedes the pre-mask −0.001 value below; sample size also shifted (27,007 vs 27,030 pre-mask), consistent with this zone bordering Nepal/Bhutan/China/Pakistan and being the most affected by the boundary fix |
 
-  **Resolved caveat**: the previous unbounded fit put the Himalayan θ\* at −0.613, outside
-  NDVI's valid range — diagnosed as a boundary regime-collapse (n_below=0, NLL surface
-  provably flat across θ∈[-2.0, -0.1605]) that an unconstrained Nelder-Mead could land
-  anywhere on. With `bounds=[...,(NDVI_VALID_MIN, NDVI_VALID_MAX)]` passed to every
-  multi-start call, the winning Himalayan solution moved to a genuine interior optimum
-  (θ\*=−0.001, n_below/n_above both well above the 1% degeneracy floor) — no zone needed to
-  be flagged as "no stable breakpoint" in this run. All five other zones' thresholds are
-  numerically unchanged (only the optimizer's bounds/degeneracy-handling changed, not the
-  underlying data or method).
+  **Historical note — resolved pre-mask caveat (superseded)**: before the boundary mask was
+  added, an *unbounded* fit put the Himalayan θ\* at −0.613, outside NDVI's valid range —
+  diagnosed as a boundary regime-collapse (n_below=0, NLL surface provably flat across
+  θ∈[-2.0, -0.1605]) that an unconstrained Nelder-Mead could land anywhere on. Bounding the
+  optimizer (`bounds=[...,(NDVI_VALID_MIN, NDVI_VALID_MAX)]`) resolved that specific
+  degeneracy and moved the (still pre-boundary-mask) Himalayan solution to θ\*=−0.001. That
+  −0.001 value is **not** the current number — once the India-boundary mask was added (below),
+  the same zone's real fire/no-fire label population changed enough (removing Nepal/Bhutan
+  border pixels) that the Himalayan θ\* moved again, to **0.530** (see table above). Both
+  fixes (optimizer bounding, then boundary masking) were genuine, sequential corrections to
+  the same zone — not a discarded/wrong intermediate result, but also not the final number.
 
   **2026-08-21 update — India boundary masking added** (commit `b7c7d3c`): this was the one
   step in the whole pipeline with no India-boundary clipping at all — the raw NDVI grid's
@@ -138,15 +214,30 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
   Bangladesh, Myanmar, Sri Lanka, and Bhutan in every downstream feature (climatology,
   anomaly, trend/residual decomposition, Mann-Kendall, CVSI, LISA, and the breakpoint fit
   above). Fixed with the same set-CRS(3857)/reproject(4326)/dissolve/rasterize convention
-  used by every other step. Verified via full re-execution: 8,573,393 px (67.2% of the raw
-  grid) now correctly excluded — the post-mask in-India pixel count (4,161,009) matches
-  Step 6's own count exactly. Effect on the numbers above: **All-India θ\* shifted
-  0.529 → 0.535** (national only; a small, expected change from restricting the label
-  population to genuine India-only pixels — the current output file is
-  `F9_NDVI_below_threshold_0.535.tif`, not `_0.529.tif`), **CVSI optimal lag k\*=8
-  unchanged**. The other four regional zones were not re-run individually in that pass; if
-  citing zone-level θ\* in the paper, use the National number as boundary-masking-corrected
-  and treat the regional numbers as pre-mask unless independently re-verified.
+  used by every other step. Verified via full re-execution (notebook cell 12's printed
+  output): **8,573,393 px (67.20% of the 12,758,064-px grid) fall outside the India
+  boundary and are excluded; 4,184,671 px (32.80%) are geometrically inside India** — these
+  two numbers are complementary and sum to the full grid. A separate, stricter **"valid
+  land" filter** applied later in the pipeline (cell 24, ahead of the LISA coarsening step)
+  additionally excludes persistent no-data/ocean pixels still present within the India
+  boundary, bringing the usable count down to **4,161,009 valid land pixels** — it is *this*
+  narrower, stricter count (not the raw geometric 4,184,671) that matches Step 6's
+  independently-built in-India pixel count exactly. (An earlier version of this README
+  conflated these two different pixel counts as if they summed with 8,573,393 to the full
+  grid, which they do not — 4,184,671 does; 4,161,009 is a further-filtered subset. Corrected
+  2026-09-23.)
+
+  Effect on every feature above: **All-India θ\* shifted 0.529 → 0.535** (current output file
+  is `F9_NDVI_below_threshold_0.535.tif`, not `_0.529.tif`); **CVSI optimal lag k\*=8
+  unchanged** (only the underlying MI values shifted marginally, table above); **Mann-Kendall
+  significant-pixel counts and Global Moran's I / LISA cluster counts also shifted** (both
+  updated above) — these were not previously called out as boundary-mask-affected in this
+  README, which was an omission fixed 2026-09-23, not a new re-run. **All five regional
+  breakpoint zones were, in fact, re-run in the same 2026-08-21 execution** (contrary to what
+  an earlier version of this README stated) — their updated values are in the table above;
+  the Himalayan zone in particular moved substantially (−0.001 → 0.530), which is the single
+  most consequential number this boundary-mask fix changed, since that zone borders the most
+  countries (Nepal, Bhutan, China, Pakistan) excluded by the mask.
 
 ### Outputs (`NDVI_Fire_Susceptibility_Outputs/`)
 
