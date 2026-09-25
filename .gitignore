@@ -29,3 +29,6 @@ __pycache__/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
+
+# Intermediate NumPy arrays (regenerable; v1 copies kept locally in _superseded_v1/)
+*.npy
