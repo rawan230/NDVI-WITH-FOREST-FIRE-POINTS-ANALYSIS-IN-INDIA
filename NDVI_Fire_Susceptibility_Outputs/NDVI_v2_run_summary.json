@@ -1,0 +1,275 @@
+{
+ "version": "v2 (2026-09-25 methodology audit)",
+ "n_months": 266,
+ "missing_ndvi_months": [],
+ "months_without_pixel_reliability": [
+  [
+   2007,
+   3
+  ],
+  [
+   2007,
+   4
+  ]
+ ],
+ "grid": {
+  "H": 3641,
+  "W": 3504,
+  "crs": "EPSG:4326",
+  "transform": [
+   0.008333333332583237,
+   0.0,
+   68.19999999386121,
+   0.0,
+   -0.008333333332583237,
+   37.091666663327985
+  ]
+ },
+ "india_mask_pixels": 4184671,
+ "qa_substitute_months": [
+  {
+   "month": "2007-03",
+   "qa_source": "VI_Quality_MODLAND",
+   "valid_india_before_qa": 4155763,
+   "valid_india_after_qa": 4099227
+  },
+  {
+   "month": "2007-04",
+   "qa_source": "VI_Quality_MODLAND",
+   "valid_india_before_qa": 4157923,
+   "valid_india_after_qa": 4142091
+  }
+ ],
+ "pixels_with_any_valid_ndvi": 4160768,
+ "F1_national_mean": 0.4508208632469177,
+ "time_mean_anomaly_identity_max_abs_err": 4.8754951371488345e-08,
+ "F6_seasonal_kendall": {
+  "n_with_pvalue": 4153368,
+  "n_tau_defined_but_lt_min_pairs": 5672,
+  "sig_p05_total": 3641791,
+  "sig_fdr_greening": 3552278,
+  "sig_fdr_browning": 72305,
+  "sen_median_per_yr": 0.002621053080809744,
+  "tau_median": 0.2696498054474708
+ },
+ "fire_rasterisation": {
+  "n_points": 541545,
+  "n_points_in_grid": 541545,
+  "n_points_sum_raster": 541545,
+  "fire_pixels_full_grid": 268766,
+  "fire_pixels_india_mask": 268476,
+  "fire_pixels_ndvi_valid": 268411,
+  "n_points_outside_india_mask": 412,
+  "frac_points_displaced_by_v1_rule": 0.7491953577265047
+ },
+ "F7_cvsi": {
+  "k_star": 8,
+  "mi_table": [
+   {
+    "k": 1,
+    "mi_mean": 0.001889199242309486,
+    "mi_sd": 4.93596346053723e-05,
+    "n_pos": 540823,
+    "n_neg_min": 540823,
+    "mi_seed42": 0.0019165074601871224,
+    "mi_seed43": 0.0018380572547386231,
+    "mi_seed44": 0.0019393856131697529,
+    "mi_seed45": 0.0018340804165105362,
+    "mi_seed46": 0.001917965466941396
+   },
+   {
+    "k": 2,
+    "mi_mean": 0.0005682540845274476,
+    "mi_sd": 1.6173123290042203e-05,
+    "n_pos": 540745,
+    "n_neg_min": 540745,
+    "mi_seed42": 0.0005655195925624024,
+    "mi_seed43": 0.0005636682435773144,
+    "mi_seed44": 0.0005501638996301961,
+    "mi_seed45": 0.0005674007615216747,
+    "mi_seed46": 0.0005945179253456501
+   },
+   {
+    "k": 3,
+    "mi_mean": 0.0008252815501369693,
+    "mi_sd": 3.405276145368099e-05,
+    "n_pos": 540507,
+    "n_neg_min": 540507,
+    "mi_seed42": 0.0008160168805587675,
+    "mi_seed43": 0.0007935853339922638,
+    "mi_seed44": 0.0007952545286392942,
+    "mi_seed45": 0.0008528189176577605,
+    "mi_seed46": 0.0008687320898367601
+   },
+   {
+    "k": 4,
+    "mi_mean": 0.0030762388809424447,
+    "mi_sd": 5.163504462931558e-05,
+    "n_pos": 539210,
+    "n_neg_min": 539210,
+    "mi_seed42": 0.0030884947022279813,
+    "mi_seed43": 0.0030763379763517756,
+    "mi_seed44": 0.0029931754341346595,
+    "mi_seed45": 0.0030879805217350897,
+    "mi_seed46": 0.0031352057702627167
+   },
+   {
+    "k": 5,
+    "mi_mean": 0.0065686155861765985,
+    "mi_sd": 7.636129500770033e-05,
+    "n_pos": 536495,
+    "n_neg_min": 536495,
+    "mi_seed42": 0.006592527492670697,
+    "mi_seed43": 0.00663102375817709,
+    "mi_seed44": 0.006449893938256318,
+    "mi_seed45": 0.00663084826070974,
+    "mi_seed46": 0.006538784481069149
+   },
+   {
+    "k": 6,
+    "mi_mean": 0.009497142597816402,
+    "mi_sd": 9.017366553570979e-05,
+    "n_pos": 535276,
+    "n_neg_min": 535276,
+    "mi_seed42": 0.009409984132980345,
+    "mi_seed43": 0.00950814079604835,
+    "mi_seed44": 0.009550953738471438,
+    "mi_seed45": 0.009612389781815195,
+    "mi_seed46": 0.009404244539766682
+   },
+   {
+    "k": 7,
+    "mi_mean": 0.01114105578782135,
+    "mi_sd": 6.645498931589292e-05,
+    "n_pos": 534986,
+    "n_neg_min": 534986,
+    "mi_seed42": 0.011049774507182766,
+    "mi_seed43": 0.011123673441766582,
+    "mi_seed44": 0.01122896719950546,
+    "mi_seed45": 0.011128119873187958,
+    "mi_seed46": 0.01117474391746398
+   },
+   {
+    "k": 8,
+    "mi_mean": 0.01229677248641969,
+    "mi_sd": 0.00017421064061988272,
+    "n_pos": 534949,
+    "n_neg_min": 534949,
+    "mi_seed42": 0.012151190606539575,
+    "mi_seed43": 0.012363726152032906,
+    "mi_seed44": 0.0124071522325718,
+    "mi_seed45": 0.012484652387739562,
+    "mi_seed46": 0.012077141053214613
+   },
+   {
+    "k": 9,
+    "mi_mean": 0.010357986938253391,
+    "mi_sd": 0.0001515942143739462,
+    "n_pos": 534954,
+    "n_neg_min": 534954,
+    "mi_seed42": 0.01056415068172989,
+    "mi_seed43": 0.010452924384437026,
+    "mi_seed44": 0.010290425309456688,
+    "mi_seed45": 0.01030668347963945,
+    "mi_seed46": 0.010175750836003902
+   },
+   {
+    "k": 10,
+    "mi_mean": 0.00926241597482596,
+    "mi_sd": 7.582587704148219e-05,
+    "n_pos": 534934,
+    "n_neg_min": 534934,
+    "mi_seed42": 0.009180451883957136,
+    "mi_seed43": 0.00933477774237794,
+    "mi_seed44": 0.009350769352430843,
+    "mi_seed45": 0.009231308860809945,
+    "mi_seed46": 0.009214772034553939
+   },
+   {
+    "k": 11,
+    "mi_mean": 0.008382560938862884,
+    "mi_sd": 8.471863194691229e-05,
+    "n_pos": 534938,
+    "n_neg_min": 534938,
+    "mi_seed42": 0.008433759920635817,
+    "mi_seed43": 0.008369639869698506,
+    "mi_seed44": 0.00823970787567313,
+    "mi_seed45": 0.008430067410167302,
+    "mi_seed46": 0.008439629618139668
+   },
+   {
+    "k": 12,
+    "mi_mean": 0.007541692680884735,
+    "mi_sd": 7.635286422628296e-05,
+    "n_pos": 534925,
+    "n_neg_min": 534925,
+    "mi_seed42": 0.0076287374949629005,
+    "mi_seed43": 0.00758671585825596,
+    "mi_seed44": 0.007523035199562503,
+    "mi_seed45": 0.00754387749217697,
+    "mi_seed46": 0.007426097359465339
+   }
+  ],
+  "F7_valid_pixels": 4151704
+ },
+ "F8_moran": {
+  "I": 0.94556659709647,
+  "EI": -1.4992054211268028e-05,
+  "z_sim": 479.76231832949475,
+  "p_sim": 0.001,
+  "permutations": 999,
+  "n_blocks": 66703,
+  "n_islands": 7,
+  "block_size_px": 8,
+  "lisa_counts": {
+   "0": 40601,
+   "1": 14185,
+   "2": 40,
+   "3": 11853,
+   "4": 24
+  }
+ },
+ "breakpoint_diagnostic": {
+  "theta_india": 0.5272082174003627,
+  "zones": {
+   "Western_Ghats": 0.4815,
+   "Northeast": 0.646,
+   "Himalayan": 0.5593,
+   "Central_India": 0.5103,
+   "Deccan": 0.5036
+  },
+  "exported_as_feature": false
+ },
+ "feature_files": [
+  "F10_fire_count_Step1.tif",
+  "F1_NDVI_QA_mean.tif",
+  "F2_NDVI_climatological_June.tif",
+  "F6_NDVI_SeasonalKendall_qvalue.tif",
+  "F6_NDVI_SeasonalKendall_tau.tif",
+  "F6_NDVI_Sen_slope.tif",
+  "F7_CVSI_k8.tif",
+  "F8_LISA_cluster.tif"
+ ],
+ "other_outputs": [
+  "F7_CVSI_MI_lag_sweep.csv",
+  "india_mask.npy",
+  "fire_count_map.npy"
+ ],
+ "superseded_moved": [
+  "F3_NDVI_anomaly_mean.tif",
+  "F4_NDVI_trend_2x12MA.tif",
+  "F5_NDVI_residual_mean.tif",
+  "F6_MannKendall_tau.tif",
+  "F9_NDVI_below_threshold_0.535.tif",
+  "ndvi_trend_mean.npy",
+  "ndvi_mk_tau.npy",
+  "ndvi_residual_mean.npy",
+  "cvsi_k6_mean.npy",
+  "cvsi_k8_mean.npy",
+  "F1_F3_NDVI_Anomaly.png",
+  "F4_F6_Trend_MannKendall.png",
+  "F9_NDVI_breakpoint.png"
+ ],
+ "compute": "GPU (NVIDIA RTX PRO 4500 Blackwell)",
+ "runtime_sec": 655.6
+}

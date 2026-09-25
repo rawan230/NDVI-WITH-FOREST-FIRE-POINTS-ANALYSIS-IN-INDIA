@@ -149,7 +149,37 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
 | MOD13A3.061 monthly NDVI, 1km, India | [NASA AppEEARS](https://appeears.earthdatacloud.nasa.gov/) | ❌ (~4.5 GB — download separately) |
 | Step 1 forest-fire points | `../Forest fire Extraction in INDIA(2000-2022)/Forest_Fire_Outputs/` | ❌ (regenerate via Step 1) |
 
-## Results (2000-11-01 → 2022-12-15, 266 months)
+## Results — v2 (notebook rerun 2026-09-25)
+
+`build_ndvi_notebook.py` was rewritten for the audited v2 methodology, and
+`NDVI_ANALYSIS_WITH_FFP.ipynb` was regenerated and re-executed end-to-end (GPU, 11 min).
+Every number below matches the independent audit recalculation
+(`audit_2026-09-25/results/R4_report.json`). The full record is
+`NDVI_Fire_Susceptibility_Outputs/NDVI_v2_run_summary.json`.
+
+| v2 feature file | What it is | Result |
+|---|---|---|
+| `F1_NDVI_QA_mean.tif` | QA-masked mean NDVI | national mean 0.451; 4,160,768 India pixels with valid NDVI |
+| `F2_NDVI_climatological_June.tif` | 2001–2020 climatological June NDVI | — |
+| `F6_NDVI_SeasonalKendall_tau.tif`, `_qvalue.tif`, `F6_NDVI_Sen_slope.tif` | Seasonal Kendall trend (Hirsch 1982) + BH-FDR + seasonal Sen slope | **3,552,278 greening / 72,305 browning** FDR-significant pixels; median τ 0.270, median Sen slope +0.0026 NDVI/yr |
+| `F7_CVSI_k8.tif` | CVSI at the mutual-information-optimal lag k* = 8 (5-seed MI sweep, `F7_CVSI_MI_lag_sweep.csv`) | 4,151,704 valid pixels |
+| `F8_LISA_cluster.tif` | LISA on 8×8-pixel block means over **India cells only** | Moran's I **0.9456** (z = 480, p = 0.001, 999 permutations, 66,703 blocks) |
+| `F10_fire_count_Step1.tif` | Step 1 fire points rasterised to their *containing* pixel (`floor`) | 541,545 points → **268,411** fire pixels with valid NDVI |
+
+**What changed:**
+- **Removed as degenerate or invalid.** Moved to `NDVI_Fire_Susceptibility_Outputs/_superseded_v1/`:
+  - F3 anomaly mean: it equals the residue of the 26 out-of-baseline months (identity error 5×10⁻⁸);
+  - F4 2×12-MA trend and F5 residual mean (≈ 0);
+  - F6 Mann–Kendall on the MA-smoothed series (lag-1 autocorrelation 0.975);
+  - F9, the thresholded θ* indicator. The breakpoint fit is kept as a diagnostic only
+    (θ* = 0.527 India-wide; `diag_NDVI_fire_breakpoint.png`).
+- **Fire label rule.** The old `round` rule put 74.9% of fire points in a neighbouring pixel.
+  The corrected F10 is the label that Step 6 checks against Step 1.
+- **Moran's I.** The old value (0.8322) was computed with 67% row-mean-filled non-India cells.
+- **Missing QA layer.** 2007-03 and 2007-04 have no pixel-reliability layer; they are now
+  QA-masked with the MODLAND bits of the VI_Quality layer instead of being used unfiltered.
+
+## Results — historical v1 (2000-11-01 → 2022-12-15, 266 months; superseded, kept for the record)
 
 - **NDVI stack**: 266 × 3641 × 3504 = 12,758,064 pixels/month, 13.57 GB, QA-masked (264/266 months had a QA layer). NaN fraction 69.9% (ocean + persistently cloud/snow-masked land).
 - **Anomaly**: range [-1.181, 1.167], mean ≈ 0.0036 (correctly centered near zero).
@@ -253,8 +283,13 @@ Requires Step 1 to have already been run (`FIRE_CSV` points at its output:
 
 ### Outputs (`NDVI_Fire_Susceptibility_Outputs/`)
 
-10 features exported as GeoTIFF (F1–F10, `.tif`, not tracked in git — see
-`.gitignore`) plus 7 summary plots (`.png`, tracked):
+**v2 (current):** `F1_NDVI_QA_mean.tif`, `F2_NDVI_climatological_June.tif`,
+`F6_NDVI_SeasonalKendall_{tau,qvalue}.tif`, `F6_NDVI_Sen_slope.tif`, `F7_CVSI_k8.tif`,
+`F8_LISA_cluster.tif`, `F10_fire_count_Step1.tif`, `F7_CVSI_MI_lag_sweep.csv`,
+`NDVI_v2_run_summary.json`, and the plots. The v1 layout below is historical; its
+superseded files are in `_superseded_v1/`.
+
+v1 layout (historical):
 
 ```
 NDVI_Fire_Susceptibility_Outputs/
