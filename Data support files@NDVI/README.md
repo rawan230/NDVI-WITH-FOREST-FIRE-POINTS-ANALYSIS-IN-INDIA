@@ -1,5 +1,15 @@
 # AppEEARS Area Sample Extraction Readme  
 
+<!-- AUDIT-UPDATE-2026-09-25 -->
+> ### Audit update (2026-09-25)
+> This repository's step was recalculated independently from the raw data in a full end-to-end audit.
+> **Corrected results, reproduction checks and audit code: [`AUDIT_2026-09-25.md`](AUDIT_2026-09-25.md)** and `audit_2026-09-25/`.
+> Earlier text below is kept for the record (it also remains in the git history). Statements superseded by the audit:
+>
+> - None of the specific numbers in this file were superseded; see `AUDIT_2026-09-25.md` for the audited results of this step.
+<!-- AUDIT-UPDATE-2026-09-25 -->
+
+
 ## Table of Contents  
 
 1. Request Parameters  

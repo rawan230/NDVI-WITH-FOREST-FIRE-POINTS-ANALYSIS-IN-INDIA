@@ -1,5 +1,17 @@
 # 🌿🔥 NDVI Fire-Susceptibility Feature Pipeline — India (Step 2)
 
+<!-- AUDIT-UPDATE-2026-09-25 -->
+> ### Audit update (2026-09-25)
+> This repository's step was recalculated independently from the raw data in a full end-to-end audit.
+> **Corrected results, reproduction checks and audit code: [`AUDIT_2026-09-25.md`](AUDIT_2026-09-25.md)** and `audit_2026-09-25/`.
+> Earlier text below is kept for the record (it also remains in the git history). Statements superseded by the audit:
+>
+> - **Moran's I 0.8322**: reproduced, but 67% of the cells were row-mean-filled non-India cells. India-only (8×8 block means): **I = 0.9456**.
+> - **Mann–Kendall significance counts**: reproduce, but the tests are invalid (MK on a smoothed or seasonal series). Seasonal Kendall + FDR gives NDVI 3,552,278 greening / 72,305 browning; LST day 2,435,163 cooling; night 2,080,747 warming; DTR 3,273,301 narrowing.
+> - **Anomaly-mean features** (climate, LST, NDVI) are degenerate: with a 2001–2020 baseline they equal the residue of the 26 out-of-baseline months. v2 replaces them with climatological levels.
+<!-- AUDIT-UPDATE-2026-09-25 -->
+
+
 **Notebook:** [`NDVI_ANALYSIS_WITH_FFP.ipynb`](NDVI_ANALYSIS_WITH_FFP.ipynb)
 
 Derives 9 NDVI-based fire-susceptibility features plus a 10th feature that
